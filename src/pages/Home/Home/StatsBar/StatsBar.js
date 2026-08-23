@@ -3,7 +3,7 @@ import React from 'react';
 const stats = [
    { number: '500+', label: 'Homes Cleaned' },
    { number: '4.7', label: 'Google Rating' },
-   { number: '70+', label: 'Verified Reviews' },
+   { number: '80+', label: 'Verified Reviews' },
    { number: '8', label: 'Specialist Services' },
 ];
 

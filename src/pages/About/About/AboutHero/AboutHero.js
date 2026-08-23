@@ -9,7 +9,7 @@ const AboutHero = () => {
             <div className="about-hero__inner">
                <div className="about-hero__rating-pill">
                   <FaStar />
-                  <span>4.7 on Google &middot; 70+ Reviews</span>
+                  <span>4.7 on Google &middot; 80+ Reviews</span>
                </div>
                <h1 className="about-hero__title">
                   The Cleaning Service<br />Chennai Actually Trusts
