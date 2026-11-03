@@ -1,0 +1,20 @@
+# Local MongoDB as a single-node replica set (needed for booking transactions).
+# Start: docker compose up -d
+# DATABASE_URL=mongodb://localhost:27017/deepcleanz?replicaSet=rs0&directConnection=true
+services:
+  mongo:
+    image: mongo:7
+    command: ['--replSet', 'rs0', '--bind_ip_all']
+    ports:
+      - '27017:27017'
+    volumes:
+      - data:/data/db
+    healthcheck:
+      test: >
+        mongosh --quiet --eval "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] }).ok }"
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+volumes:
+  data:

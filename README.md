@@ -1,106 +1,63 @@
-# Getting Started with Create React App
+# DeepCleanz — website + admin (Day 1)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Next.js 16 + Payload CMS 3 + MongoDB, one app. The public site and the admin panel (`/admin`) run together.
+Design source of truth: `deepcleanz-website-spec.md` (Project docs) and the "DeepCleanz Website Design" canvas.
 
-## Available Scripts
+## What's in Day 1
 
-In the project directory, you can run:
+| Area | Collections / globals |
+|---|---|
+| Operations | `bookings`, `dispatch` (job offers to partners), `leads`, `capacity`, `areas` |
+| Partners | `partners` (per-partner commission, ID/address checks, payout UPI), `payouts` (weekly settlement) |
+| Catalogue | `services` (condition cards with price + half/whole day, zones, handover, tips), `addons` |
+| Content | `occasions` (seasons by date), `jobs` ("Fresh from the field", consent required), `faqs`, `media` |
+| Settings | `users` (owner / ops), `site-settings` (contact, rating, reviews, homes, tracking IDs), `booking-settings` (crews per day, start times) |
 
-### `npm start`
+### Business rules already enforced on the server
+- **Prices** are recomputed from the catalogue whenever a booking's items change (`src/lib/pricing.ts`). The browser's number is display-only.
+- **Capacity**: each partner crew = morning + afternoon. Whole-day jobs, or 2+ half-day items, take both halves. Reservation is atomic in a MongoDB transaction — two customers can't take the last slot (`src/lib/capacity.ts`). Cancelling or rescheduling gives the units back.
+- **Partner flow**: booking → `partner_requested` → a `dispatch` offer marked *accepted* assigns the partner, confirms the booking and expires the other offers. A booking can't move past "partner requested" without a partner.
+- **Paid**: entering the amount and setting status *Paid* locks the partner's commission %, commission and partner payout. Partner rating and jobs done update automatically.
+- **Payouts**: pick a partner's paid bookings → totals computed; cash taken by the partner is deducted. A negative amount means the partner owes DeepCleanz.
+- **Roles**: Ops can run bookings, dispatch, leads, capacity and the jobs feed. Only the Owner can change prices, settings, partners and payouts.
+- **Honesty guards**: services with any ₹0 option are seeded unpublished; field jobs can't be published without customer consent; partner ID documents are not stored — only the check dates.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Run it locally
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+1. **Database** (must be a replica set, for booking transactions). Either:
+   - MongoDB Atlas free cluster → copy the connection string, or
+   - `docker compose up -d` → `mongodb://localhost:27017/deepcleanz?replicaSet=rs0&directConnection=true`
+2. `cp .env.example .env` and fill `DATABASE_URL`, `PAYLOAD_SECRET` (`openssl rand -hex 32`), optionally `SEED_OWNER_EMAIL` / `SEED_OWNER_PASSWORD`.
+3. `npm install`
+4. `npm run seed` — loads contact details, 4.6★ / 77 reviews / 200+ homes, start times, crews per day = 3, and all 8 services.
+5. `npm run dev` → site at http://localhost:3000, admin at http://localhost:3000/admin (create the first user if you didn't set the seed owner — the first account becomes Owner).
 
-### `npm test`
+After changing collections: `npm run generate:types` and `npm run generate:importmap`.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Deploy
 
-### `npm run build`
+The old site was static files copied to the server. The new site is a **Node.js server** (website + admin + API), so the server must run Node. Two options:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+**A. Your existing server (where the old CI deployed)**
+1. Install Node 22+ and pm2 on the server.
+2. Build on the server or in CI: `npm ci && npm run build`.
+3. Run: `pm2 start npm --name deepcleanz -- start` (listens on port 3000).
+4. Put Nginx in front: proxy `deepcleanz.com` → `127.0.0.1:3000`, keep HTTPS.
+5. Leave `BLOB_READ_WRITE_TOKEN` empty → uploaded images are stored in `./media` on the server (back this folder up).
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+**B. Vercel**
+- Import the repo, set the env vars plus `BLOB_READ_WRITE_TOKEN` (Vercel → Storage → Blob) so uploaded images persist.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Either way, use MongoDB Atlas (or a replica-set Mongo) and point DNS only when the new site is ready. The CI deploy job is switched off (`.github/workflows/ci-cd.yml`) until one option is chosen.
 
-### `npm run eject`
+## Old site and old API
+- The old React site stays on `main` until this branch is merged.
+- The old site posted forms to `REACT_APP_API_BASE_URL/api/v1/appointments` and visits to `/api/v1/tracking`. The new site stores bookings and leads in its own database (Payload). The old API isn't called from this branch; decide whether to retire it or forward new bookings to it.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Before launch (needs real content)
+- Fill every ₹0 condition and add-on price in **Catalogue → Services / Add-ons**, then tick *Published*.
+- Add partners with their commission %, check dates and payout UPI.
+- Add Google review link, UPI ID and tracking IDs in **Settings**.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-## GitHub CI/CD
-
-This repo includes a GitHub Actions workflow at [.github/workflows/ci-cd.yml](/D:/Work/Repos/DeepCleanz%20-%20ui/ui/.github/workflows/ci-cd.yml) that:
-
-- runs on pull requests to `main`
-- installs dependencies with `npm ci`
-- runs the test suite
-- builds the production app
-- deploys the generated `build/` folder to a remote server on pushes to `main`
-
-### Required GitHub secrets
-
-Add these repository secrets before enabling deployment:
-
-- `DEPLOY_HOST`: remote server hostname or IP
-- `DEPLOY_USER`: SSH username
-- `DEPLOY_SSH_PRIVATE_KEY`: private SSH key used by GitHub Actions
-- `DEPLOY_PATH`: target directory on the remote server where static files should be published
-
-### Optional GitHub secrets and variables
-
-- `DEPLOY_PORT`: custom SSH port, defaults to `22`
-- `DEPLOY_POST_COMMAND`: command to run on the server after upload, for example `sudo systemctl reload nginx`
-- repository variable `REACT_APP_API_BASE_URL`: production API base URL injected at build time
-
-This workflow is currently configured to skip SSH host key verification during deploy. That removes the need for `DEPLOY_KNOWN_HOSTS`, but it is less secure than verifying the server fingerprint.
-
-### Typical server setup
-
-Point your web server document root to the same directory as `DEPLOY_PATH`, or have your server serve files from that directory. For an Nginx-based static site, deployment often looks like:
-
-- `DEPLOY_PATH=/var/www/deepcleanz`
-- `DEPLOY_POST_COMMAND=sudo systemctl reload nginx`
-
-If you want zero-downtime releases with a symlink-based deploy layout, we can tighten this workflow further once you share the target server setup.
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Next (Day 2 →)
+Shared components and the "Plan your clean" home page; then service pages, pricing, booking API (`priceItems` + `reserveHalves` + lead capture), occasion page, SEO layer and tracking — see spec §5.5.
