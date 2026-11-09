@@ -33,7 +33,7 @@ done
 
 if [ "$ok" != 1 ]; then
   echo "Health check failed (last status: ${code:-none}). Last log lines:"
-  tail -n 30 "$APP_DIR/shared/logs/error.log" || true
+  pm2 logs deepcleanz --err --lines 30 --nostream || true
   if [ -n "$PREV" ] && [ -d "$PREV" ]; then
     echo "Rolling back to $PREV"
     ln -sfn "$PREV" "$APP_DIR/current.tmp" && mv -Tf "$APP_DIR/current.tmp" "$APP_DIR/current"

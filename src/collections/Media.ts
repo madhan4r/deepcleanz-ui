@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { siteCacheHooks } from '../hooks/bustCache'
 import { anyone, isOwner, isStaff } from '../access/roles'
+import { sharp } from '../lib/sharp'
 
 /** Public images used on the website. Alt text is required for SEO and accessibility. */
 export const Media: CollectionConfig = {
@@ -29,9 +30,14 @@ export const Media: CollectionConfig = {
     // Uploaded images live outside the release folder on the server so deploys never wipe them.
     staticDir: process.env.MEDIA_DIR || 'media',
     mimeTypes: ['image/*'],
-    imageSizes: [
-      { name: 'card', width: 640 },
-      { name: 'hero', width: 1440 },
-    ],
+    // Resized copies need sharp; on a CPU without it the original is used everywhere.
+    ...(sharp
+      ? {
+          imageSizes: [
+            { name: 'card', width: 640 },
+            { name: 'hero', width: 1440 },
+          ],
+        }
+      : { crop: false, focalPoint: false }),
   },
 }

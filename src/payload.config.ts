@@ -4,7 +4,6 @@ import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import path from 'path'
 import { buildConfig } from 'payload'
-import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
 import { Bookings } from './collections/Bookings'
@@ -15,6 +14,7 @@ import { Partners } from './collections/Partners'
 import { Addons, Services } from './collections/Services'
 import { Users } from './collections/Users'
 import { BookingSettings, SiteSettings } from './globals/Settings'
+import { sharp } from './lib/sharp'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -59,7 +59,8 @@ export default buildConfig({
   db: mongooseAdapter({
     url: process.env.DATABASE_URL || '',
   }),
-  sharp,
+  // Only when sharp loads on this CPU (see src/lib/sharp.ts).
+  ...(sharp ? { sharp } : {}),
   // Email (new-booking alerts, admin password resets). Off until SMTP settings are in .env;
   // without them Payload only logs emails to the console.
   ...(process.env.SMTP_HOST
