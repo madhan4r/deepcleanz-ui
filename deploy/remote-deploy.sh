@@ -21,7 +21,8 @@ ln -sfn "$REL" "$APP_DIR/current.tmp" && mv -Tf "$APP_DIR/current.tmp" "$APP_DIR
 
 export APP_DIR
 pm2 startOrReload "$REL/deploy/ecosystem.config.cjs" --update-env
-pm2 save >/dev/null
+# No `pm2 save` here: it would overwrite the saved list of every app on the server
+# (it did once, when the other apps were stopped). Save by hand after adding an app.
 
 # Health check: the home page reads the database, so 200 means app + DB are fine.
 ok=0
