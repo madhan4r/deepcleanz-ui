@@ -2,6 +2,9 @@
 # Runs on the server. Usage: remote-deploy.sh <release-id> <path-to-release.tgz>
 # Unpacks the release, switches `current`, reloads pm2, checks the site and rolls back if it fails.
 set -euo pipefail
+# Node and pm2 come from nvm on our server; non-interactive SSH does not load it.
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 ID="$1"; TGZ="$2"
 APP_DIR="${APP_DIR:-/var/www/deepcleanz}"
 REL="$APP_DIR/releases/$ID"

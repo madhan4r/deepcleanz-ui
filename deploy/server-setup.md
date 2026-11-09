@@ -8,6 +8,8 @@ Assumes Ubuntu/Debian on **x64** (on an ARM server, tell Claude: the image libra
 Commands use `deploy` as the SSH user that GitHub Actions logs in as (`DEPLOY_USER`).
 
 ## 1. Node 22+ and pm2
+> Our server already has Node 24 + pm2 through **nvm** (user `madhan`); `remote-deploy.sh` loads nvm itself. Only `pm2 startup` is needed there. The steps below are for a fresh server.
+
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt-get install -y nodejs nginx
