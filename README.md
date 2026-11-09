@@ -1,4 +1,4 @@
-# DeepCleanz — website + admin (Day 1)
+# DeepCleanz — website + admin
 
 Next.js 16 + Payload CMS 3 + MongoDB, one app. The public site and the admin panel (`/admin`) run together.
 Design source of truth: `deepcleanz-website-spec.md` (Project docs) and the "DeepCleanz Website Design" canvas.
@@ -34,21 +34,20 @@ Design source of truth: `deepcleanz-website-spec.md` (Project docs) and the "Dee
 
 After changing collections: `npm run generate:types` and `npm run generate:importmap`.
 
-## Deploy
+## Deploy (own server)
 
-The old site was static files copied to the server. The new site is a **Node.js server** (website + admin + API), so the server must run Node. Two options:
+Nginx (HTTPS) → pm2 → Next.js standalone bundle (`output: 'standalone'`). GitHub Actions type-checks, builds and packages on every push; pushes to `main` are copied to the server over SSH (same secrets as the old static deploy) and switched in with an automatic health check and rollback.
 
-**A. Your existing server (where the old CI deployed)**
-1. Install Node 22+ and pm2 on the server.
-2. Build on the server or in CI: `npm ci && npm run build`.
-3. Run: `pm2 start npm --name deepcleanz -- start` (listens on port 3000).
-4. Put Nginx in front: proxy `deepcleanz.com` → `127.0.0.1:3000`, keep HTTPS.
-5. Leave `BLOB_READ_WRITE_TOKEN` empty → uploaded images are stored in `./media` on the server (back this folder up).
+- One-time server setup: **`deploy/server-setup.md`**
+- Files: `deploy/ecosystem.config.cjs` (pm2), `deploy/remote-deploy.sh` (runs on the server), `deploy/nginx/deepcleanz.conf`
+- Production settings live in `/var/www/deepcleanz/shared/.env`; uploaded images in `shared/media` (back it up).
+- Merging `revamp/nextjs-payload` into `main` switches the live site over.
 
-**B. Vercel**
-- Import the repo, set the env vars plus `BLOB_READ_WRITE_TOKEN` (Vercel → Storage → Blob) so uploaded images persist.
+### Email alerts (optional)
+Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` and `ALERT_EMAIL` to get an email for every new booking (and admin password resets). Without `SMTP_HOST`, emails are only logged.
 
-Either way, use MongoDB Atlas (or a replica-set Mongo) and point DNS only when the new site is ready. The CI deploy job is switched off (`.github/workflows/ci-cd.yml`) until one option is chosen.
+### Launch & tracking
+See `docs/launch-checklist.md` and `docs/tracking-setup.md`.
 
 ## Old site and old API
 - The old React site stays on `main` until this branch is merged.

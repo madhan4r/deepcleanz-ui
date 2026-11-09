@@ -1,6 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
 import { anyone, isOwner, isStaff } from '../access/roles'
+import { bustSiteGlobal } from '../hooks/bustCache'
 
 /**
  * One source of truth for every number the site, ads and Google Business Profile show.
@@ -8,6 +9,7 @@ import { anyone, isOwner, isStaff } from '../access/roles'
  */
 export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
+  hooks: { afterChange: [bustSiteGlobal] },
   label: 'Site settings',
   admin: { group: 'Settings' },
   access: { read: anyone, update: isOwner },
@@ -44,6 +46,12 @@ export const SiteSettings: GlobalConfig = {
               ],
             },
             { name: 'upiId', label: 'DeepCleanz UPI ID', type: 'text', admin: { description: 'For the payment message sent at the walk-through.' } },
+            { name: 'mapsLink', label: 'Google Maps link', type: 'text', admin: { description: 'Your Google Business Profile link (used on Contact).' } },
+            {
+              name: 'founderNote',
+              type: 'textarea',
+              admin: { description: 'A few lines in your own words for the About page. Hidden until filled.' },
+            },
           ],
         },
         {
@@ -88,6 +96,13 @@ export const SiteSettings: GlobalConfig = {
                 { name: 'adsConversionId', label: 'Google Ads conversion ID', type: 'text' },
                 { name: 'adsBookingLabel', label: 'Ads label — booking confirmed', type: 'text' },
                 { name: 'adsLeadLabel', label: 'Ads label — lead (phone entered)', type: 'text' },
+                {
+                  name: 'adsOfflineConversionName',
+                  label: 'Ads offline conversion name (paid jobs)',
+                  type: 'text',
+                  defaultValue: 'Paid job',
+                  admin: { description: 'Must match the conversion action name in Google Ads exactly.' },
+                },
               ],
             },
           ],
@@ -99,6 +114,7 @@ export const SiteSettings: GlobalConfig = {
 
 export const BookingSettings: GlobalConfig = {
   slug: 'booking-settings',
+  hooks: { afterChange: [bustSiteGlobal] },
   label: 'Booking settings',
   admin: { group: 'Settings' },
   access: { read: anyone, update: isStaff },

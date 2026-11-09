@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
+import { siteCacheHooks } from '../hooks/bustCache'
 import { isOwner, isStaff, ownerOnlyField } from '../access/roles'
 import { textList } from '../fields/shared'
 
@@ -9,6 +10,7 @@ import { textList } from '../fields/shared'
  */
 export const Partners: CollectionConfig = {
   slug: 'partners',
+  hooks: siteCacheHooks,
   admin: {
     useAsTitle: 'name',
     group: 'Partners',

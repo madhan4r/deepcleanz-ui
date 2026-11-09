@@ -1,4 +1,5 @@
 import { mongooseAdapter } from '@payloadcms/db-mongodb'
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import path from 'path'
@@ -7,7 +8,7 @@ import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
 import { Bookings } from './collections/Bookings'
-import { Areas, Faqs, Jobs, Occasions } from './collections/Content'
+import { Areas, Faqs, Jobs, Occasions, Pages } from './collections/Content'
 import { Media } from './collections/Media'
 import { Capacity, Dispatch, Leads, Payouts } from './collections/Operations'
 import { Partners } from './collections/Partners'
@@ -42,6 +43,7 @@ export default buildConfig({
     Addons,
     // Content
     Occasions,
+    Pages,
     Jobs,
     Faqs,
     Media,
@@ -58,6 +60,22 @@ export default buildConfig({
     url: process.env.DATABASE_URL || '',
   }),
   sharp,
+  // Email (new-booking alerts, admin password resets). Off until SMTP settings are in .env;
+  // without them Payload only logs emails to the console.
+  ...(process.env.SMTP_HOST
+    ? {
+        email: nodemailerAdapter({
+          defaultFromAddress: process.env.SMTP_FROM || 'bookings@deepcleanz.com',
+          defaultFromName: 'DeepCleanz',
+          transportOptions: {
+            host: process.env.SMTP_HOST,
+            port: Number(process.env.SMTP_PORT || 587),
+            secure: Number(process.env.SMTP_PORT) === 465,
+            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+          },
+        }),
+      }
+    : {}),
   plugins: [
     // Public images on Vercel Blob in production; local disk in development.
     vercelBlobStorage({

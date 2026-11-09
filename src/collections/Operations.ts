@@ -2,6 +2,7 @@ import { APIError, type CollectionConfig } from 'payload'
 
 import { isOwner, isStaff } from '../access/roles'
 import { dayField, halfOptions } from '../fields/shared'
+import { bustCapacityOnChange } from '../hooks/bustCache'
 
 type Row = Record<string, any>
 const idOf = (v: unknown) => (typeof v === 'string' ? v : (v as { id: string })?.id)
@@ -13,6 +14,7 @@ export const Capacity: CollectionConfig = {
   admin: { useAsTitle: 'day', group: 'Operations', defaultColumns: ['day', 'half', 'booked', 'capacity', 'blocked'] },
   access: { read: isStaff, create: isStaff, update: isStaff, delete: isOwner },
   indexes: [{ fields: ['day', 'half'], unique: true }],
+  hooks: { afterChange: [bustCapacityOnChange] },
   defaultSort: 'day',
   fields: [
     {

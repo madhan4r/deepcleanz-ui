@@ -22,7 +22,7 @@ env:
 
 jobs:
   ci:
-    name: Type-check and build
+    name: Type-check, build and package
     runs-on: ubuntu-latest
 
     steps:
@@ -48,13 +48,59 @@ jobs:
           DATABASE_URL: mongodb://127.0.0.1:27017/ci
         run: npm run build
 
-  # The old deploy copied a static build/ folder. The new site is a Next.js server
-  # (website + admin + API) and needs Node on the server (e.g. `npm start` under pm2)
-  # or Vercel. Deployment is switched off until the hosting choice is made — see README.
+      - name: Package release
+        run: |
+          set -euo pipefail
+          R=release
+          rm -rf "$R" && mkdir -p "$R/.next"
+          cp -a .next/standalone/. "$R/"
+          cp -a .next/static "$R/.next/static"
+          if [ -d public ]; then cp -a public "$R/public"; fi
+          mkdir -p "$R/deploy" && cp deploy/ecosystem.config.cjs deploy/remote-deploy.sh "$R/deploy/"
+          tar -czf release.tgz -C "$R" .
+
+      - name: Upload release
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: release.tgz
+          retention-days: 7
+
+  # Own server: Nginx -> pm2 -> Next.js standalone bundle. One-time setup: deploy/server-setup.md.
+  # Uses the same SSH secrets as the old static deploy. APP_DIR (repo variable) defaults to /var/www/deepcleanz.
   deploy:
-    name: Deploy (disabled until hosting is set up)
+    name: Deploy to server
     runs-on: ubuntu-latest
     needs: ci
-    if: false
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+
     steps:
-      - run: echo "See README → Deploy"
+      - name: Download release
+        uses: actions/download-artifact@v4
+        with:
+          name: release
+
+      - name: Configure SSH key
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Upload and switch release
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          APP_DIR: ${{ vars.APP_DIR || '/var/www/deepcleanz' }}
+        run: |
+          set -euo pipefail
+          PORT="${DEPLOY_PORT:-22}"
+          OPTS="-i $HOME/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new"
+          ID="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
+          scp $OPTS -P "$PORT" release.tgz "$DEPLOY_USER@$DEPLOY_HOST:/tmp/deepcleanz-$ID.tgz"
+          ssh $OPTS -p "$PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "set -e; mkdir -p /tmp/dc-$ID; tar -xzf /tmp/deepcleanz-$ID.tgz -C /tmp/dc-$ID ./deploy/remote-deploy.sh; APP_DIR='$APP_DIR' bash /tmp/dc-$ID/deploy/remote-deploy.sh '$ID' /tmp/deepcleanz-$ID.tgz; rm -rf /tmp/dc-$ID"

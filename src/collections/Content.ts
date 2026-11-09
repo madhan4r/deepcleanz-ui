@@ -2,10 +2,12 @@ import type { CollectionConfig } from 'payload'
 
 import { anyone, isOwner, isStaff, publishedOrStaff } from '../access/roles'
 import { orderField, publishedField, slugField, textList } from '../fields/shared'
+import { siteCacheHooks } from '../hooks/bustCache'
 
 /** Occasion pages — one URL per occasion kept all year; seasons swap the content by date. */
 export const Occasions: CollectionConfig = {
   slug: 'occasions',
+  hooks: siteCacheHooks,
   admin: { useAsTitle: 'name', group: 'Content', defaultColumns: ['name', 'slug', 'published'] },
   access: { read: publishedOrStaff, create: isOwner, update: isOwner, delete: isOwner },
   fields: [
@@ -35,6 +37,13 @@ export const Occasions: CollectionConfig = {
             { name: 'bookingOpensOn', type: 'date', admin: { width: '33%' } },
             { name: 'activeFrom', type: 'date', required: true, admin: { width: '33%' } },
             { name: 'activeTo', type: 'date', required: true, admin: { width: '33%' } },
+          ],
+        },
+        {
+          type: 'row',
+          fields: [
+            { name: 'rushFrom', type: 'date', admin: { width: '50%', description: 'Peak week shown in the live slot meter (from)' } },
+            { name: 'rushTo', type: 'date', admin: { width: '50%', description: '(to), e.g. the 7 days before Bhogi' } },
           ],
         },
         { name: 'badge', type: 'text' },
@@ -68,6 +77,7 @@ export const Occasions: CollectionConfig = {
 
 export const Faqs: CollectionConfig = {
   slug: 'faqs',
+  hooks: siteCacheHooks,
   labels: { singular: 'FAQ', plural: 'FAQs' },
   admin: { useAsTitle: 'question', group: 'Content', defaultColumns: ['question', 'topic', 'order'] },
   access: { read: anyone, create: isOwner, update: isOwner, delete: isOwner },
@@ -114,6 +124,7 @@ export const Areas: CollectionConfig = {
 /** "Fresh from the field" — real before/after from recent jobs. */
 export const Jobs: CollectionConfig = {
   slug: 'jobs',
+  hooks: siteCacheHooks,
   labels: { singular: 'Field job', plural: 'Fresh from the field' },
   admin: { useAsTitle: 'title', group: 'Content', defaultColumns: ['title', 'service', 'area', 'date', 'published'] },
   access: {
@@ -161,5 +172,24 @@ export const Jobs: CollectionConfig = {
           ? 'Tick customer consent before publishing.'
           : true,
     },
+  ],
+}
+
+/**
+ * Text pages written in admin: policies (privacy, terms, cancellation, damage) and any other simple page.
+ * Served at /{slug}. Drafts stay unpublished until the owner has reviewed the wording.
+ */
+export const Pages: CollectionConfig = {
+  slug: 'pages',
+  hooks: siteCacheHooks,
+  admin: { useAsTitle: 'title', group: 'Content', defaultColumns: ['title', 'slug', 'published', 'updatedAt'] },
+  access: { read: publishedOrStaff, create: isOwner, update: isOwner, delete: isOwner },
+  versions: { maxPerDoc: 20 },
+  fields: [
+    { name: 'title', type: 'text', required: true },
+    slugField('e.g. privacy-policy'),
+    publishedField,
+    { name: 'metaDescription', type: 'textarea', maxLength: 155 },
+    { name: 'body', type: 'richText', required: true },
   ],
 }

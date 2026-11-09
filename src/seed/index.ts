@@ -7,6 +7,7 @@
  * Services without confirmed prices are created with price 0 and left UNPUBLISHED,
  * so nothing with a placeholder price can reach the website.
  */
+import { convertMarkdownToLexical, editorConfigFactory } from '@payloadcms/richtext-lexical'
 import { getPayload } from 'payload'
 
 import config from '../payload.config'
@@ -29,6 +30,12 @@ type ServiceSeed = {
   subline: string
   order: number
   conditions: Condition[]
+  /** Draft page content — review in admin before publishing. */
+  zones?: { title: string; description: string; pinX?: number; pinY?: number }[]
+  excluded?: string[]
+  handover?: string[]
+  tips?: string[]
+  faqs?: { question: string; answer: string }[]
 }
 
 const services: ServiceSeed[] = [
@@ -44,6 +51,13 @@ const services: ServiceSeed[] = [
       { key: '2bhk', label: '2 BHK', price: 3799, units: 'whole' },
       { key: '3bhk', label: '3 BHK', price: 4799, units: 'whole' },
     ],
+    handover: [
+      'Kitchen — tiles, stove, chimney',
+      'Bathrooms — tiles, fittings, toilet',
+      'Bedrooms — fans, windows, floor',
+      'Living room & balcony',
+    ],
+    excluded: ['Pest control', 'Painting or wall repairs', 'Plumbing or electrical work'],
   },
   {
     name: 'Kitchen Deep Cleaning',
@@ -56,6 +70,35 @@ const services: ServiceSeed[] = [
       { key: 'light', label: 'Light', price: 1299, units: 'half', description: 'Cooked in daily, cleaned weekly. A thin film on tiles.' },
       { key: 'regular', label: 'Regular', price: 0, units: 'half', description: 'Sticky tiles, dull stove, chimney turning brown.' },
       { key: 'heavy', label: 'Heavy grease', price: 0, units: 'half', description: 'Not deep cleaned in a year or more. Black on chimney.' },
+    ],
+    zones: [
+      { title: 'Wall tiles & backsplash', description: 'Degreased tile by tile, grout lines brushed, oil splatter behind the stove lifted.' },
+      { title: 'Chimney & exhaust fan', description: 'Outer body and hood degreased.' },
+      { title: 'Platform & countertop', description: 'Granite or tile scrubbed, including edges and corners where crumbs and oil collect.' },
+      { title: 'Gas stove', description: 'Top, burner area and knobs cleaned of burnt-on spills.' },
+      { title: 'Sink & tap', description: 'Hard-water scale removed from sink, tap and drain area.' },
+      { title: 'Cabinet fronts, window & floor', description: 'Handles and shutters wiped, window and grill cleaned, floor scrubbed.' },
+    ],
+    excluded: ['Inside of appliances', 'Pest control', 'Plumbing or electrical repairs'],
+    handover: [
+      'Tiles feel smooth, not sticky',
+      'No oil film on the chimney hood',
+      'Stove top free of burnt spots',
+      'Tap and sink shine, no white scale',
+      'Cabinet handles clean to touch',
+      'Floor dry, no slippery residue',
+    ],
+    tips: [
+      'Wipe the tiles behind the stove right after tadka, while the oil is still warm.',
+      'Run the chimney for 10 minutes after cooking to clear steam and smoke.',
+      'Dry the sink every night — Chennai hard water leaves scale within days.',
+      'Clean the chimney filter once a month with hot water and soap.',
+      'Leave a window open for 15 minutes after cooking to cut humidity.',
+    ],
+    faqs: [
+      { question: 'How long does kitchen deep cleaning take?', answer: 'It depends on how heavy the grease is — the planner shows the time for the option you pick.' },
+      { question: 'Do I need to empty the kitchen?', answer: 'Just clear the counters and the stove top before the crew arrives.' },
+      { question: 'How often should a kitchen be deep cleaned?', answer: 'Every three months if you cook every day. Tap "Remind me" and we will message you when it is time.' },
     ],
   },
   {
@@ -138,8 +181,22 @@ const services: ServiceSeed[] = [
 
 async function upsertService(payload: Awaited<ReturnType<typeof getPayload>>, s: ServiceSeed) {
   const allPriced = s.conditions.every((c) => c.price > 0)
+  const { zones, excluded, handover, tips, faqs, ...base } = s
+  const faqIds: string[] = []
+  for (const [i, f] of (faqs ?? []).entries()) {
+    const found = await payload.find({ collection: 'faqs', where: { question: { equals: f.question } }, limit: 1, overrideAccess: true })
+    const doc =
+      found.docs[0] ??
+      (await payload.create({ collection: 'faqs', data: { ...f, topic: 'day', order: 100 + i }, overrideAccess: true }))
+    faqIds.push(doc.id)
+  }
   const data = {
-    ...s,
+    ...base,
+    ...(zones ? { zones } : {}),
+    ...(excluded ? { excluded: excluded.map((item) => ({ item })) } : {}),
+    ...(handover ? { handover: handover.map((item) => ({ item })) } : {}),
+    ...(tips ? { tips: tips.map((item) => ({ item })) } : {}),
+    ...(faqIds.length ? { faqs: faqIds } : {}),
     published: allPriced,
     seoTitle: `${s.h1}${allPriced ? ` from ₹${Math.min(...s.conditions.map((c) => c.price)).toLocaleString('en-IN')}` : ''} | DeepCleanz`.slice(0, 60),
   }
@@ -171,6 +228,7 @@ async function run() {
       googleRating: 4.6,
       googleReviewCount: 77,
       homesCleanedDisplay: '200+',
+      mapsLink: 'https://maps.app.goo.gl/8eaRtPbwnZ74kt4L8',
     },
   })
 
@@ -194,6 +252,263 @@ async function run() {
   for (const s of services) {
     const result = await upsertService(payload, s)
     payload.logger.info(`${result}: ${s.name}`)
+  }
+
+  // Full-home extras for the home-page planner. Created INACTIVE with ₹0 —
+  // the planner only shows active add-ons with a real price.
+  const fullHome = await payload.find({
+    collection: 'services',
+    where: { slug: { equals: 'home-deep-cleaning-chennai' } },
+    limit: 1,
+    overrideAccess: true,
+  })
+  const extras = [
+    { name: 'Sofa', unit: 'per sofa' },
+    { name: 'Mattress', unit: 'per mattress' },
+    { name: 'Heavy kitchen grease', unit: '' },
+    { name: 'Big balcony', unit: '' },
+    { name: 'Empty house (moving)', unit: '' },
+  ]
+  const extraIds: string[] = []
+  for (const e of extras) {
+    const found = await payload.find({ collection: 'addons', where: { name: { equals: e.name } }, limit: 1, overrideAccess: true })
+    const doc =
+      found.docs[0] ??
+      (await payload.create({
+        collection: 'addons',
+        data: { name: e.name, unit: e.unit, price: 0, active: false },
+        overrideAccess: true,
+      }))
+    extraIds.push(doc.id)
+  }
+  if (fullHome.docs[0]) {
+    const current = (fullHome.docs[0].addons ?? []).map((a) => (typeof a === 'string' ? a : a.id))
+    await payload.update({
+      collection: 'services',
+      id: fullHome.docs[0].id,
+      data: { addons: Array.from(new Set([...current, ...extraIds])) },
+      overrideAccess: true,
+    })
+  }
+
+  // "Make it a full home" upgrade on single-room service pages.
+  if (fullHome.docs[0]) {
+    for (const slug of ['kitchen-cleaning-chennai', 'bathroom-cleaning-chennai', 'bedroom-cleaning-chennai', 'sofa-cleaning-chennai']) {
+      const found = await payload.find({ collection: 'services', where: { slug: { equals: slug } }, limit: 1, overrideAccess: true })
+      if (found.docs[0] && !(found.docs[0].related ?? []).length) {
+        await payload.update({
+          collection: 'services',
+          id: found.docs[0].id,
+          data: { related: [fullHome.docs[0].id] },
+          overrideAccess: true,
+        })
+      }
+    }
+  }
+
+  // ---- Pongal occasion (spec S6b). Dates verified: Bhogi Thu 14 Jan 2027, Thai Pongal Fri 15 Jan 2027.
+  const pongalExtras = [
+    { name: 'Pooja room detail', unit: '' },
+    { name: 'Entrance & kolam area wash', unit: '' },
+    { name: 'All windows & grills', unit: '' },
+  ]
+  const pongalExtraIds: string[] = []
+  for (const e of pongalExtras) {
+    const found = await payload.find({ collection: 'addons', where: { name: { equals: e.name } }, limit: 1, overrideAccess: true })
+    const doc =
+      found.docs[0] ??
+      (await payload.create({ collection: 'addons', data: { name: e.name, unit: e.unit, price: 0, active: false }, overrideAccess: true }))
+    pongalExtraIds.push(doc.id)
+  }
+  const sofa = await payload.find({ collection: 'addons', where: { name: { equals: 'Sofa' } }, limit: 1, overrideAccess: true })
+  if (fullHome.docs[0]) {
+    // Festival extras must also be Full Home add-ons, or bookings would drop them.
+    const fh = await payload.findByID({ collection: 'services', id: fullHome.docs[0].id, depth: 0, overrideAccess: true })
+    const current = (fh.addons ?? []).map((a) => (typeof a === 'string' ? a : a.id))
+    await payload.update({
+      collection: 'services',
+      id: fh.id,
+      data: { addons: Array.from(new Set([...current, ...pongalExtraIds])) },
+      overrideAccess: true,
+    })
+  }
+  const pongalFaqs = [
+    { question: 'Can you come on Bhogi day?', answer: 'Only a few slots, and they go first. Booking 5–7 days before Bhogi is safer.' },
+    { question: 'When should I book my Pongal clean?', answer: 'As early as you can — weekends in the week before Bhogi fill first.' },
+  ]
+  const pongalFaqIds: string[] = []
+  for (const [i, f] of pongalFaqs.entries()) {
+    const found = await payload.find({ collection: 'faqs', where: { question: { equals: f.question } }, limit: 1, overrideAccess: true })
+    const doc = found.docs[0] ?? (await payload.create({ collection: 'faqs', data: { ...f, topic: 'booking', order: 200 + i }, overrideAccess: true }))
+    pongalFaqIds.push(doc.id)
+  }
+  const festival = {
+    name: 'Festival Deep Cleaning',
+    slug: 'festival-deep-cleaning-chennai',
+    published: true,
+    evergreen: false,
+    offSeasonMessage: 'Get a WhatsApp reminder the day bookings open — or book a regular deep clean now.',
+    seasons: [
+      {
+        label: 'Pongal',
+        bookingOpensOn: '2026-12-01T00:00:00.000Z',
+        activeFrom: '2026-12-01T00:00:00.000Z',
+        activeTo: '2027-01-17T00:00:00.000Z',
+        rushFrom: '2027-01-07T00:00:00.000Z',
+        rushTo: '2027-01-13T00:00:00.000Z',
+        badge: 'Pongal 2027 · Bhogi Thu 14 Jan',
+        h1: 'Pongal Deep Cleaning in Chennai',
+        subline: 'A sparkling home before Bhogi — so the week before the festival goes to kolam, shopping and family, not scrubbing.',
+        extras: [...pongalExtraIds, ...(sofa.docs[0] ? [sofa.docs[0].id] : [])],
+        focus: [
+          { title: 'Entrance & doorstep', text: 'Gate, steps and the kolam spot scrubbed so the kolam sits on a clean floor.' },
+          { title: 'Pooja room', text: 'Shelves, walls and floor cleaned with care. Idols and lamps are handled only if you ask.' },
+          { title: 'Kitchen', text: 'Degreased before the biggest cooking week of the year — tiles, stove, chimney.' },
+          { title: 'Living room & sofa', text: 'Where guests sit: fan, lights, windows, sofa and floor.' },
+          { title: 'Guest bathroom', text: 'Tiles and fittings scrubbed, hard-water stains removed.' },
+          { title: 'Windows, grills & balcony', text: 'Months of road dust cleared from every grill.' },
+        ],
+        timeline: [
+          { when: 'From 1 Dec', title: 'Bookings open', text: 'Lock your date early — weekends before Bhogi fill first.' },
+          { when: '7–12 Jan', title: 'Best days to clean', text: 'Your home stays clean through the festival and leaves days for decorating.' },
+          { when: '13 Jan', title: 'Last slots before Bhogi', text: 'Limited — book these only if you must.' },
+        ],
+        prepList: [
+          { item: 'Old mats, torn curtains and broken utensils' },
+          { item: 'Expired items in the kitchen and fridge' },
+          { item: 'Newspapers and boxes under beds' },
+          { item: 'Clothes nobody wears' },
+        ],
+        faqs: pongalFaqIds,
+      },
+    ],
+  }
+  const existingFestival = await payload.find({ collection: 'occasions', where: { slug: { equals: festival.slug } }, limit: 1, overrideAccess: true })
+  if (existingFestival.docs[0]) {
+    await payload.update({ collection: 'occasions', id: existingFestival.docs[0].id, data: festival, overrideAccess: true })
+  } else {
+    await payload.create({ collection: 'occasions', data: festival, overrideAccess: true })
+  }
+
+  // ---- Policy pages as UNPUBLISHED drafts. Every [bracket] needs your decision before publishing.
+  const editorConfig = await editorConfigFactory.default({ config: payload.config })
+  const md = (markdown: string) => convertMarkdownToLexical({ editorConfig, markdown })
+  const policyDrafts = [
+    {
+      title: 'Privacy policy',
+      slug: 'privacy-policy',
+      metaDescription: 'What DeepCleanz collects when you book, why, and how to ask for it to be deleted.',
+      body: md(`DeepCleanz ("we") runs deepcleanz.com. This page explains what we collect when you use the site or book a clean.
+
+## What we collect
+- **When you book:** your name, mobile/WhatsApp number, address, the date and time you picked, what you want cleaned and any notes (for example "pets at home").
+- **When you type your number but don't finish:** your number and what you were planning, so we can call you back.
+- **When you arrive from an ad or link:** a cookie called \`dc_attr\` that remembers the ad click id and campaign tags for 90 days.
+- **Analytics:** if enabled, Google Tag Manager, Google Analytics and Google Ads measure visits and bookings.
+
+## Why we use it
+- To confirm your booking, assign a cleaning partner and contact you by phone or WhatsApp.
+- To share your name, address and phone with the cleaning partner who accepts your job — only after they accept.
+- To see which ads lead to bookings.
+
+We do not sell your information.
+
+## How long we keep it
+[How long booking and lead records are kept, e.g. 2 years after your last booking.]
+
+## Your choices
+You can ask us to show, correct or delete your information by emailing [info@deepcleanz.com] or messaging us on WhatsApp. Grievance officer: [name, email].
+`),
+    },
+    {
+      title: 'Terms of service',
+      slug: 'terms',
+      metaDescription: 'The terms for booking a DeepCleanz deep clean.',
+      body: md(`## Who does the work
+DeepCleanz takes your booking and assigns it to a verified cleaning partner (ID and address checked). The partner brings their own machines and chemicals.
+
+## Price
+The price is fixed for what you pick in the planner. If your home is very different from what you booked, we tell you before work starts and you can say no. The price never changes after the work is done.
+
+## Payment
+You pay DeepCleanz after you inspect the work — by UPI or cash. Nothing is paid in advance.
+
+## Cancellation and damage
+See our cancellation policy and damage policy.
+
+[Anything else you want customers to agree to.]
+`),
+    },
+    {
+      title: 'Cancellation & reschedule policy',
+      slug: 'cancellation-policy',
+      metaDescription: 'How to reschedule or cancel a DeepCleanz booking.',
+      body: md(`## Rescheduling
+[Free up to X hours before the start time, subject to free slots.]
+
+## Cancelling
+[Any fee? e.g. free up to X hours before; ₹Y after that.]
+
+## If we have to cancel
+[What happens — e.g. we call you to move the date, no charge.]
+`),
+    },
+    {
+      title: 'Damage policy',
+      slug: 'damage-policy',
+      metaDescription: 'What happens if something is damaged during a DeepCleanz clean.',
+      body: md(`## Reporting
+[Tell us within X hours, with photos, by WhatsApp or call.]
+
+## How it is settled
+[Who pays — DeepCleanz or the partner — and up to what amount.]
+`),
+    },
+  ]
+  for (const pg of policyDrafts) {
+    const found = await payload.find({ collection: 'pages', where: { slug: { equals: pg.slug } }, limit: 1, overrideAccess: true })
+    if (!found.docs[0]) {
+      await payload.create({ collection: 'pages', data: { ...pg, published: false }, overrideAccess: true })
+    }
+  }
+
+  // Home-page FAQs — only answers that match confirmed decisions (spec D20/D21).
+  const faqs = [
+    {
+      question: 'Do I pay anything before the cleaning?',
+      answer: 'Nothing. You pay DeepCleanz only after you walk through your home and tick the checklist.',
+      topic: 'payment' as const,
+    },
+    {
+      question: 'How do I pay?',
+      answer: 'By UPI to DeepCleanz after the walk-through. Cash is also fine.',
+      topic: 'payment' as const,
+    },
+    {
+      question: 'What if something is missed?',
+      answer: 'Point it out during the walk-through and the crew fixes it before leaving.',
+      topic: 'day' as const,
+    },
+    {
+      question: 'I have kids and pets at home.',
+      answer: 'Tick "Pets" or "Baby / elders" when you book and we brief your crew before they arrive.',
+      topic: 'safety' as const,
+    },
+    {
+      question: 'Who comes to my home?',
+      answer: 'A verified DeepCleanz cleaning partner — ID and address checked before joining, and rated by every customer.',
+      topic: 'safety' as const,
+    },
+  ]
+  for (const [i, f] of faqs.entries()) {
+    const found = await payload.find({ collection: 'faqs', where: { question: { equals: f.question } }, limit: 1, overrideAccess: true })
+    if (!found.docs[0]) {
+      await payload.create({
+        collection: 'faqs',
+        data: { ...f, showOnHome: true, showOnPricing: f.topic === 'payment', order: i + 1 },
+        overrideAccess: true,
+      })
+    }
   }
 
   const ownerEmail = process.env.SEED_OWNER_EMAIL

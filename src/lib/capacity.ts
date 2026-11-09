@@ -24,27 +24,18 @@ export async function reserveHalves(payload: Payload, day: string, halves: Half[
   try {
     await session.withTransaction(async () => {
       for (const half of halves) {
-        const now = new Date()
         // Create the day's record from the default if it doesn't exist yet.
+        // Timestamps are left to Mongoose (Payload models use `timestamps: true`); setting
+        // updatedAt here too makes MongoDB reject the update with a path conflict.
         await Capacity.updateOne(
           { day, half },
-          {
-            $setOnInsert: {
-              day,
-              half,
-              capacity: defaultCapacity,
-              booked: 0,
-              blocked: false,
-              createdAt: now,
-              updatedAt: now,
-            },
-          },
+          { $setOnInsert: { day, half, capacity: defaultCapacity, booked: 0, blocked: false } },
           { upsert: true, session },
         )
         // Take one unit only if one is free and the half isn't blocked.
         const taken = await Capacity.findOneAndUpdate(
           { day, half, blocked: { $ne: true }, $expr: { $lt: ['$booked', '$capacity'] } },
-          { $inc: { booked: 1 }, $set: { updatedAt: now } },
+          { $inc: { booked: 1 } },
           { new: true, session },
         )
         if (!taken) throw new SlotFullError(`${day} ${half} is full`)
@@ -66,7 +57,7 @@ export async function releaseHalves(payload: Payload, day: string, halves: Half[
   for (const half of halves) {
     await Capacity.updateOne(
       { day, half, booked: { $gt: 0 } },
-      { $inc: { booked: -1 }, $set: { updatedAt: new Date() } },
+      { $inc: { booked: -1 } },
     )
   }
 }

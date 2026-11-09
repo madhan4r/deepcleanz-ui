@@ -1,6 +1,8 @@
 import { APIError, type CollectionConfig } from 'payload'
 
 import { isOwner, isStaff } from '../access/roles'
+import { bookingEndpoints } from '../endpoints/booking'
+import { bustCapacityOnChange } from '../hooks/bustCache'
 import { dayField, halfOptions } from '../fields/shared'
 import { releaseHalves, reserveHalves } from '../lib/capacity'
 import { type Half, halvesFor, priceItems, splitCommission } from '../lib/pricing'
@@ -31,6 +33,7 @@ export const Bookings: CollectionConfig = {
     delete: isOwner,
   },
   defaultSort: '-createdAt',
+  endpoints: bookingEndpoints,
   hooks: {
     beforeChange: [
       async ({ data, originalDoc, operation, req }) => {
@@ -110,6 +113,34 @@ export const Bookings: CollectionConfig = {
       },
     ],
     afterChange: [
+      bustCapacityOnChange,
+      // New booking → email the owner/ops (only when ALERT_EMAIL and SMTP are set).
+      async ({ doc, operation, req }) => {
+        const to = process.env.ALERT_EMAIL
+        if (operation !== 'create' || !to || !process.env.SMTP_HOST) return doc
+        try {
+          const settings = await req.payload.findGlobal({ slug: 'booking-settings', req, overrideAccess: true })
+          const start = (settings.startTimes ?? []).find((s) => s.key === doc.startTime)?.label ?? doc.startTime
+          const notes = (doc.notes ?? []).join(', ')
+          const lines = [
+            `New booking ${doc.bookingNo}`,
+            '',
+            ...(doc.items ?? []).map((i: Row) => `• ${i.label} — ₹${i.linePrice}`),
+            `Total: ₹${doc.total}  (pay after service)`,
+            `When: ${doc.day} · ${start}${doc.wholeDay ? ' · whole day' : ''}`,
+            `Customer: ${doc.customer?.name} · ${doc.customer?.phone} (phone not verified — call to confirm)`,
+            `Address: ${doc.address?.line}, ${doc.address?.areaText}${doc.address?.landmark ? ` (near ${doc.address.landmark})` : ''}${doc.address?.lift === false ? ' · NO LIFT' : ''}`,
+            notes ? `Notes: ${notes}` : '',
+            doc.specialInstructions ? `Instructions: ${doc.specialInstructions}` : '',
+            '',
+            `Open in admin: ${(process.env.NEXT_PUBLIC_SERVER_URL || '').replace(/\/$/, '')}/admin/collections/bookings/${doc.id}`,
+          ].filter((l) => l !== '')
+          await req.payload.sendEmail({ to, subject: `New booking ${doc.bookingNo} · ${doc.day} · ₹${doc.total}`, text: lines.join('\n') })
+        } catch (err) {
+          req.payload.logger.error({ err }, `Booking alert email failed for ${doc.bookingNo}`)
+        }
+        return doc
+      },
       async ({ doc, previousDoc, operation, req }) => {
         const prev: Row = previousDoc ?? {}
         // Cancelled: free the capacity.

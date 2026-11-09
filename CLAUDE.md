@@ -25,9 +25,18 @@ Next.js 16 + Payload CMS 3 + MongoDB (Atlas). Admin at `/admin`.
 - Env: copy `.env.example` → `.env` (never commit `.env`)
 
 ## Sprint status (Nov 2026)
-Day 1 done: data model, roles, pricing, capacity, dispatch, payouts, seed. Next: Day 2 shared components + "Plan your clean" home page, then service pages, pricing page, booking flow API, Pongal occasion page, SEO layer, tracking (spec §5.5, §9, S1–S14).
+Day 1 done: data model, roles, pricing, capacity, dispatch, payouts, seed.
+Day 2 done: brand CSS (`src/app/(frontend)/globals.css`), header/footer/action bar (`src/components/site`), home page with planner (`src/components/home`), schema, GTM + gclid cookie.
+Day 3 done: `/[slug]` service template (`src/components/service`), `/pricing` (`src/components/pricing`); pages = data loader + view component.
+Day 4 done: `/book` + `/thank-you` (`src/components/booking`), booking API as Payload endpoints in `src/endpoints/booking.ts` + `src/lib/booking.ts`. Route groups: `(site)` = header/footer pages, `(focus)` = booking pages (noindex).
+Day 5 done: occasions + admin pages via `/[slug]` (`src/components/occasion`, `src/components/pages`), `/about`, `/contact`, `/faq`, `pages` collection (policy drafts unpublished), `src/app/sitemap.ts`, `src/app/robots.ts`, redirects in `next.config.ts`.
+Day 6 done: data caching (`src/lib/cache.ts`, tags `site`/`capacity`, busted by `src/hooks/bustCache.ts`), security headers, optional SMTP email + new-booking alert (`ALERT_EMAIL`), owner-only `GET /api/bookings/ads-conversions.csv` (Google Ads offline upload, `?mark=1`), `docs/tracking-setup.md`, `docs/launch-checklist.md`.
+Day 7 in progress: own-server deploy set up (standalone build, pm2, Nginx, CI deploy with health check + rollback).
+Next: server setup, merge to main, launch (DNS, Search Console, GBP, Ads landing pages) per `docs/launch-checklist.md`. Pending integrations: phone OTP (Firebase), admin "Today" view.
+New cached reads go through `cachedQuery()`; any new collection that feeds pages needs `siteCacheHooks`.
+Rules: hide any section that has no real data — never show placeholder content on the live site.
 
 ## Repo notes
 - Windows checkout with `core.autocrlf=true`.
-- CI deploy job is disabled until hosting for a Node server is chosen (own server with pm2 + Nginx, or Vercel).
+- Hosting: own server. Nginx → pm2 → Next.js standalone bundle built in CI, deployed on push to `main` (`deploy/`, `deploy/server-setup.md`). Uploaded images: `MEDIA_DIR` (server: `shared/media`).
 - Open decision: retire the old API (`/api/v1/appointments`, `/api/v1/tracking`) or forward bookings to it.

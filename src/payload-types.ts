@@ -77,6 +77,7 @@ export interface Config {
     services: Service;
     addons: Addon;
     occasions: Occasion;
+    pages: Page;
     jobs: Job;
     faqs: Faq;
     media: Media;
@@ -98,6 +99,7 @@ export interface Config {
     services: ServicesSelect<false> | ServicesSelect<true>;
     addons: AddonsSelect<false> | AddonsSelect<true>;
     occasions: OccasionsSelect<false> | OccasionsSelect<true>;
+    pages: PagesSelect<false> | PagesSelect<true>;
     jobs: JobsSelect<false> | JobsSelect<true>;
     faqs: FaqsSelect<false> | FaqsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
@@ -654,6 +656,14 @@ export interface Occasion {
         bookingOpensOn?: string | null;
         activeFrom: string;
         activeTo: string;
+        /**
+         * Peak week shown in the live slot meter (from)
+         */
+        rushFrom?: string | null;
+        /**
+         * (to), e.g. the 7 days before Bhogi
+         */
+        rushTo?: string | null;
         badge?: string | null;
         h1: string;
         subline?: string | null;
@@ -683,6 +693,40 @@ export interface Occasion {
         id?: string | null;
       }[]
     | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: string;
+  title: string;
+  /**
+   * e.g. privacy-policy
+   */
+  slug: string;
+  /**
+   * Only published records appear on the website.
+   */
+  published?: boolean | null;
+  metaDescription?: string | null;
+  body: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -780,6 +824,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'occasions';
         value: string | Occasion;
+      } | null)
+    | ({
+        relationTo: 'pages';
+        value: string | Page;
       } | null)
     | ({
         relationTo: 'jobs';
@@ -1132,6 +1180,8 @@ export interface OccasionsSelect<T extends boolean = true> {
         bookingOpensOn?: T;
         activeFrom?: T;
         activeTo?: T;
+        rushFrom?: T;
+        rushTo?: T;
         badge?: T;
         h1?: T;
         subline?: T;
@@ -1160,6 +1210,19 @@ export interface OccasionsSelect<T extends boolean = true> {
         faqs?: T;
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages_select".
+ */
+export interface PagesSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  published?: T;
+  metaDescription?: T;
+  body?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1331,6 +1394,14 @@ export interface SiteSetting {
    * For the payment message sent at the walk-through.
    */
   upiId?: string | null;
+  /**
+   * Your Google Business Profile link (used on Contact).
+   */
+  mapsLink?: string | null;
+  /**
+   * A few lines in your own words for the About page. Hidden until filled.
+   */
+  founderNote?: string | null;
   googleRating?: number | null;
   googleReviewCount?: number | null;
   /**
@@ -1360,6 +1431,10 @@ export interface SiteSetting {
     adsConversionId?: string | null;
     adsBookingLabel?: string | null;
     adsLeadLabel?: string | null;
+    /**
+     * Must match the conversion action name in Google Ads exactly.
+     */
+    adsOfflineConversionName?: string | null;
   };
   updatedAt?: string | null;
   createdAt?: string | null;
@@ -1439,6 +1514,8 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         id?: T;
       };
   upiId?: T;
+  mapsLink?: T;
+  founderNote?: T;
   googleRating?: T;
   googleReviewCount?: T;
   homesCleanedDisplay?: T;
@@ -1460,6 +1537,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         adsConversionId?: T;
         adsBookingLabel?: T;
         adsLeadLabel?: T;
+        adsOfflineConversionName?: T;
       };
   updatedAt?: T;
   createdAt?: T;

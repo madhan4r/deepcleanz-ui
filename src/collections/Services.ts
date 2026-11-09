@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { isOwner, publishedOrStaff } from '../access/roles'
 import { orderField, publishedField, slugField, textList } from '../fields/shared'
+import { bustSiteOnDelete } from '../hooks/bustCache'
 import { touchPrices } from '../hooks/touchPrices'
 
 /**
@@ -22,7 +23,7 @@ export const Services: CollectionConfig = {
     delete: isOwner,
   },
   versions: { maxPerDoc: 50 },
-  hooks: { afterChange: [touchPrices] },
+  hooks: { afterChange: [touchPrices], afterDelete: [bustSiteOnDelete] }, // touchPrices updates site-settings, whose hook clears the cache
   defaultSort: 'order',
   fields: [
     { name: 'name', type: 'text', required: true },
@@ -149,7 +150,7 @@ export const Addons: CollectionConfig = {
     delete: isOwner,
   },
   versions: { maxPerDoc: 50 },
-  hooks: { afterChange: [touchPrices] },
+  hooks: { afterChange: [touchPrices], afterDelete: [bustSiteOnDelete] }, // touchPrices updates site-settings, whose hook clears the cache
   fields: [
     { name: 'name', type: 'text', required: true },
     {
