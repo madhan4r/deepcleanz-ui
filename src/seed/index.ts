@@ -11,6 +11,7 @@ import { convertMarkdownToLexical, editorConfigFactory } from '@payloadcms/richt
 import { getPayload } from 'payload'
 
 import config from '../payload.config'
+import { catalogue, officeChairService, seoTitleFor } from './catalogue'
 
 type Condition = {
   key: string
@@ -177,9 +178,15 @@ const services: ServiceSeed[] = [
       { key: 'paint-cement', label: 'Paint and cement marks', price: 0, units: 'whole' },
     ],
   },
+  {
+    ...officeChairService,
+    conditions: [],
+  },
 ]
 
-async function upsertService(payload: Awaited<ReturnType<typeof getPayload>>, s: ServiceSeed) {
+async function upsertService(payload: Awaited<ReturnType<typeof getPayload>>, seed: ServiceSeed) {
+  // Confirmed prices live in ./catalogue.ts, so re-running the seed never reverts them.
+  const s = { ...seed, conditions: catalogue[seed.slug] ?? seed.conditions }
   const allPriced = s.conditions.every((c) => c.price > 0)
   const { zones, excluded, handover, tips, faqs, ...base } = s
   const faqIds: string[] = []
@@ -198,7 +205,7 @@ async function upsertService(payload: Awaited<ReturnType<typeof getPayload>>, s:
     ...(tips ? { tips: tips.map((item) => ({ item })) } : {}),
     ...(faqIds.length ? { faqs: faqIds } : {}),
     published: allPriced,
-    seoTitle: `${s.h1}${allPriced ? ` from ₹${Math.min(...s.conditions.map((c) => c.price)).toLocaleString('en-IN')}` : ''} | DeepCleanz`.slice(0, 60),
+    seoTitle: seoTitleFor(s.h1, s.conditions),
   }
   const existing = await payload.find({ collection: 'services', where: { slug: { equals: s.slug } }, limit: 1, overrideAccess: true })
   if (existing.docs[0]) {
