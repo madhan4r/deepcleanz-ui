@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { Faq, Job, Service, SiteSetting } from '@/payload-types'
 import { mediaUrl } from '@/lib/site'
 
@@ -252,9 +253,9 @@ export function ChatFaq({ faqs, title = 'You asked, we answered' }: { faqs: Faq[
             </div>
           ))}
         </dl>
-        <a href="/faq" style={{ fontWeight: 700 }}>
+        <Link href="/faq" style={{ fontWeight: 700 }}>
           More questions →
-        </a>
+        </Link>
       </div>
     </section>
   )

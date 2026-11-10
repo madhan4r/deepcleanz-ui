@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useSyncExternalStore } from 'react'
 
 import { track } from '@/components/site/track'
 import { inr, whatsappHref } from '@/lib/format'
@@ -34,21 +34,33 @@ function calendarHref(b: Last) {
   return `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`
 }
 
+const noSubscribe = () => () => {}
+const readLastBooking = () => {
+  try {
+    return sessionStorage.getItem('dc_last_booking')
+  } catch {
+    return null // private mode
+  }
+}
+
 /**
  * /thank-you — fires the main Google Ads + GA4 conversion exactly once per booking (spec S8, S14).
  * Booking details come from this browser's session only, so the page never exposes anyone else's booking.
  */
 export function ThankYou({ whatsapp }: { whatsapp: string }) {
-  const [b, setB] = useState<Last | null | undefined>(undefined)
+  // Server render (no sessionStorage) → undefined; in the browser → the saved booking or null.
+  const raw = useSyncExternalStore(noSubscribe, readLastBooking, () => undefined)
+  const b = useMemo<Last | null | undefined>(() => {
+    if (raw === undefined) return undefined
+    try {
+      return JSON.parse(raw ?? 'null') as Last | null
+    } catch {
+      return null
+    }
+  }, [raw])
 
   useEffect(() => {
-    let last: Last | null = null
-    try {
-      last = JSON.parse(sessionStorage.getItem('dc_last_booking') ?? 'null')
-    } catch {
-      last = null
-    }
-    setB(last)
+    const last = b
     if (!last) return
     const flag = `dc_conv_${last.bookingNo}`
     try {
@@ -63,7 +75,7 @@ export function ThankYou({ whatsapp }: { whatsapp: string }) {
       currency: 'INR',
       service: last.service,
     })
-  }, [])
+  }, [b])
 
   if (b === undefined) return <div className="wrap section" />
 

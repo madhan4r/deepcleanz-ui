@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { Planner } from '@/components/home/Planner'
 import { ChatFaq } from '@/components/home/Sections'
 import { breadcrumbSchema, faqSchema, JsonLd } from '@/components/site/JsonLd'
@@ -112,9 +113,9 @@ export function OccasionView({
               >
                 Remind me on WhatsApp
               </a>
-              <a className="btn btn-soft btn-block" href="/#plan">
+              <Link className="btn btn-soft btn-block" href="/#plan">
                 Book a deep clean now{from ? ` · from ${inr(from)}` : ''}
-              </a>
+              </Link>
             </div>
           )}
         </div>

@@ -36,6 +36,7 @@ The site also stores the Google Ads click id (`gclid`) and UTM tags for 90 days 
 
 - Admin → Events → mark `booking_confirmed` and `lead_phone_entered` as **key events**.
 - Link GA4 to Google Ads (Admin → Product links).
+- Keep **Enhanced measurement → Page changes based on browser history events** ON (default). Internal links load without a full page reload, so GA4 counts those page views from history changes.
 
 ## 4. Google Ads conversion actions
 

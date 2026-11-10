@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 /** DeepCleanz logo — Concept 2 "Home + sparkle" (spec D14). Original artwork. */
 export function LogoIcon({ size = 32, title }: { size?: number; title?: string }) {
   return (
@@ -28,11 +30,11 @@ export function LogoIcon({ size = 32, title }: { size?: number; title?: string }
 
 export function Logo() {
   return (
-    <a href="/" className="logo" aria-label="DeepCleanz home">
+    <Link href="/" className="logo" aria-label="DeepCleanz home">
       <LogoIcon />
       <span aria-hidden="true" style={{ color: 'var(--ink)' }}>
         Deep<span>Cleanz</span>
       </span>
-    </a>
+    </Link>
   )
 }

@@ -1,3 +1,6 @@
+import Link from 'next/link'
+
+import { MenuCloser } from '@/components/site/MenuCloser'
 import type { Service, SiteSetting } from '@/payload-types'
 import { inr, telHref, whatsappHref } from '@/lib/format'
 import { fromPrice } from '@/lib/site'
@@ -27,6 +30,7 @@ const priceLabel = (s: Service) => {
 export function SiteHeader({ settings, services }: Props) {
   return (
     <header className="site-header">
+      <MenuCloser />
       <div className="wrap">
         <Logo />
         <nav className="nav-desktop" aria-label="Main">
@@ -40,18 +44,18 @@ export function SiteHeader({ settings, services }: Props) {
               ))}
             </div>
           </details>
-          <a href="/festival-deep-cleaning-chennai">Pongal &amp; Diwali</a>
-          <a href="/pricing">Prices</a>
-          <a href="/about">Who comes</a>
-          <a href="/faq">Questions</a>
+          <Link href="/festival-deep-cleaning-chennai">Pongal &amp; Diwali</Link>
+          <Link href="/pricing">Prices</Link>
+          <Link href="/about">Who comes</Link>
+          <Link href="/faq">Questions</Link>
         </nav>
         <div className="header-actions">
           <a className="header-phone" href={telHref(settings.phone)} data-place="header">
             {settings.phone}
           </a>
-          <a className="btn btn-book header-book" href="/#plan">
+          <Link className="btn btn-book header-book" href="/#plan">
             Plan my clean
-          </a>
+          </Link>
           <a className="icon-btn header-call" href={telHref(settings.phone)} aria-label={`Call ${settings.businessName}`} data-place="header">
             <PhoneIcon />
           </a>
@@ -67,11 +71,11 @@ export function SiteHeader({ settings, services }: Props) {
                 </a>
               ))}
               <span className="menu-label">More</span>
-              <a href="/festival-deep-cleaning-chennai">Pongal &amp; Diwali cleaning</a>
-              <a href="/pricing">Prices</a>
-              <a href="/about">Who comes to your home</a>
-              <a href="/faq">Questions</a>
-              <a href="/contact">Contact</a>
+              <Link href="/festival-deep-cleaning-chennai">Pongal &amp; Diwali cleaning</Link>
+              <Link href="/pricing">Prices</Link>
+              <Link href="/about">Who comes to your home</Link>
+              <Link href="/faq">Questions</Link>
+              <Link href="/contact">Contact</Link>
               <div className="pills" style={{ marginTop: 16 }}>
                 <a className="btn btn-soft" href={telHref(settings.phone)} data-place="menu">
                   Call
@@ -156,13 +160,13 @@ export function SiteFooter({ settings, services }: Props) {
           <h2>Occasions</h2>
           <ul>
             <li>
-              <a href="/festival-deep-cleaning-chennai">Pongal &amp; Diwali deep cleaning</a>
+              <Link href="/festival-deep-cleaning-chennai">Pongal &amp; Diwali deep cleaning</Link>
             </li>
             <li>
-              <a href="/move-in-move-out-cleaning-chennai">Move-in &amp; rental handover</a>
+              <Link href="/move-in-move-out-cleaning-chennai">Move-in &amp; rental handover</Link>
             </li>
             <li>
-              <a href="/post-renovation-cleaning-chennai">After renovation</a>
+              <Link href="/post-renovation-cleaning-chennai">After renovation</Link>
             </li>
           </ul>
         </div>
@@ -170,20 +174,20 @@ export function SiteFooter({ settings, services }: Props) {
           <h2>Company</h2>
           <ul>
             <li>
-              <a href="/pricing">Prices</a>
+              <Link href="/pricing">Prices</Link>
             </li>
             <li>
-              <a href="/about">Who comes to your home</a>
+              <Link href="/about">Who comes to your home</Link>
             </li>
             <li>
-              <a href="/faq">Questions</a>
+              <Link href="/faq">Questions</Link>
             </li>
             <li>
-              <a href="/contact">Contact</a>
+              <Link href="/contact">Contact</Link>
             </li>
             <li>
-              <a href="/privacy-policy">Privacy</a> · <a href="/terms">Terms</a> ·{' '}
-              <a href="/cancellation-policy">Cancellation</a> · <a href="/damage-policy">Damage</a>
+              <Link href="/privacy-policy">Privacy</Link> · <Link href="/terms">Terms</Link> ·{' '}
+              <Link href="/cancellation-policy">Cancellation</Link> · <Link href="/damage-policy">Damage</Link>
             </li>
           </ul>
         </div>

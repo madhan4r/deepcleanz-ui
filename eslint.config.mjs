@@ -7,6 +7,8 @@ const eslintConfig = [
   ...nextTs,
   {
     rules: {
+      // Photos use plain <img>: next/image needs sharp, which can't run on our VPS CPU (see src/lib/sharp.ts).
+      '@next/next/no-img-element': 'off',
       '@typescript-eslint/ban-ts-comment': 'warn',
       '@typescript-eslint/no-empty-object-type': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',

@@ -1,4 +1,4 @@
-import { APIError, type CollectionConfig } from 'payload'
+import { APIError, type CollectionConfig, type Field } from 'payload'
 
 import { isOwner, isStaff } from '../access/roles'
 import { bookingEndpoints } from '../endpoints/booking'
@@ -9,6 +9,8 @@ import { type Half, halvesFor, priceItems, splitCommission } from '../lib/pricin
 
 const ASSIGNED_STATUSES = ['confirmed', 'in_progress', 'completed', 'paid']
 
+// Payload hook data (data / originalDoc / req) is untyped; this alias keeps the hooks readable.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>
 
 async function startTimeHalf(req: Row['req'], startTime: string): Promise<Half> {
@@ -276,7 +278,7 @@ export const Bookings: CollectionConfig = {
             {
               type: 'row',
               fields: [
-                { ...dayField(), admin: { width: '40%' } } as any,
+                { ...dayField(), admin: { width: '40%' } } as Field,
                 {
                   name: 'startTime',
                   type: 'text',

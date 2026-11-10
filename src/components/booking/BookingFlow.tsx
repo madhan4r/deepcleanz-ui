@@ -1,6 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 
 import { track } from '@/components/site/track'
 import { inr, whatsappHref } from '@/lib/format'
@@ -47,47 +49,57 @@ export function BookingFlow({ summary, whatsapp }: { summary: BookingSummary; wh
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [website, setWebsite] = useState('') // honeypot — real people never see or fill this
-  const [error, setError] = useState('')
-  const [notice, setNotice] = useState('') // "slot just taken" — stays until a new time is picked
+  // A "please fill…" message belongs to the field values it was raised for: it disappears as soon as
+  // the customer changes one of them (derived here instead of being cleared from an effect).
+  const fieldsKey = [day, startTime, area, line, name, phone].join('|')
+  const [errorState, setErrorState] = useState<{ msg: string; key: string }>({ msg: '', key: '' })
+  const setError = (msg: string) => setErrorState({ msg, key: fieldsKey })
+  const [loadError, setLoadError] = useState('') // dates failed to load — stays until they load
+  const error = (errorState.key === fieldsKey ? errorState.msg : '') || loadError
+  const [noticeMsg, setNotice] = useState('') // "slot just taken" — shown until a new time is picked
+  const notice = startTime ? '' : noticeMsg
+  const router = useRouter()
   const [busy, setBusy] = useState(false)
   const leadSent = useRef('')
   const headingRef = useRef<HTMLHeadingElement>(null)
 
-  const query = new URLSearchParams({ service: summary.service, option: summary.option, addons: summary.addons.join(',') })
+  const addonsKey = summary.addons.join(',')
 
-  const loadDays = useCallback(async () => {
-    setDays(null)
-    const res = await fetch(`/api/bookings/availability?${query.toString()}`, { cache: 'no-store' })
-    const json = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      setError(json.error ?? 'Could not load dates. Please call or WhatsApp us.')
-      setDays([])
-      return
-    }
-    setDays(json.days as Day[])
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [summary.service, summary.option, summary.addons.join(',')])
 
   useEffect(() => {
     track('book_step_1', { service: summary.service, value: summary.total })
   }, [summary.service, summary.total])
 
+  // Load dates when step 2 opens; callers reset `days` to null to reload (e.g. after a 409).
   useEffect(() => {
-    if (step === 1 && days === null) void loadDays()
-  }, [step, days, loadDays])
+    if (step !== 1 || days !== null) return
+    let cancelled = false
+    const query = new URLSearchParams({ service: summary.service, option: summary.option, addons: addonsKey })
+    fetch(`/api/bookings/availability?${query.toString()}`, { cache: 'no-store' })
+      .then(async (res) => {
+        const json = await res.json().catch(() => ({}))
+        if (cancelled) return
+        if (!res.ok) {
+          setLoadError(json.error ?? 'Could not load dates. Please call or WhatsApp us.')
+          setDays([])
+          return
+        }
+        setLoadError('')
+        setDays(json.days as Day[])
+      })
+      .catch(() => {
+        if (cancelled) return
+        setLoadError('Could not load dates. Please call or WhatsApp us.')
+        setDays([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [step, days, summary.service, summary.option, addonsKey])
 
   useEffect(() => {
     headingRef.current?.focus()
   }, [step])
-
-  // Clear the "please fill…" message as soon as the customer changes something.
-  useEffect(() => {
-    setError('')
-  }, [day, startTime, area, line, name, phone])
-
-  useEffect(() => {
-    if (startTime) setNotice('')
-  }, [startTime])
 
   const selectedDay = days?.find((d) => d.day === day)
   const startLabel = selectedDay?.startTimes.find((s) => s.key === startTime)?.label
@@ -178,7 +190,7 @@ export function BookingFlow({ summary, whatsapp }: { summary: BookingSummary; wh
     } catch {
       /* private mode — thank-you page falls back to a generic message */
     }
-    window.location.assign('/thank-you')
+    router.push('/thank-you')
   }
 
   return (
@@ -401,8 +413,8 @@ export function BookingFlow({ summary, whatsapp }: { summary: BookingSummary; wh
               </div>
             </div>
             <p className="muted" style={{ fontSize: 13 }}>
-              We use your number only for this booking. By booking you agree to our <a href="/terms">terms</a> and{' '}
-              <a href="/privacy-policy">privacy policy</a>.
+              We use your number only for this booking. By booking you agree to our <Link href="/terms">terms</Link> and{' '}
+              <Link href="/privacy-policy">privacy policy</Link>.
             </p>
           </div>
         )}

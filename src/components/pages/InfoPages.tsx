@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { RichText } from '@payloadcms/richtext-lexical/react'
 
 import { WhoComes } from '@/components/home/Sections'
@@ -110,9 +111,9 @@ export function ContactView({ settings, services }: { settings: SiteSetting; ser
               <a className="btn btn-soft" href={telHref(settings.phone)} data-place="contact">
                 Call {settings.phone}
               </a>
-              <a className="btn btn-book" href="/#plan">
+              <Link className="btn btn-book" href="/#plan">
                 See your price
-              </a>
+              </Link>
             </div>
           </div>
           <address className="contact-card">

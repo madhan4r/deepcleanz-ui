@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { Metadata } from 'next'
 
 import { BookingFlow } from '@/components/booking/BookingFlow'
@@ -27,9 +28,9 @@ export default async function BookPage({ searchParams }: Props) {
         <h1 className="book-h1">Let&apos;s plan your clean first</h1>
         <p className="lede">Pick your home size and extras to see the price, then come back here to choose a date.</p>
         <div className="pills">
-          <a className="btn btn-book" href="/#plan">
+          <Link className="btn btn-book" href="/#plan">
             Plan my clean
-          </a>
+          </Link>
           <a className="btn btn-wa" href={whatsappHref(settings.whatsapp, 'Hi DeepCleanz, I would like to book a deep clean.')} data-place="book-empty">
             WhatsApp us
           </a>

@@ -1,9 +1,11 @@
-import { APIError, type CollectionConfig } from 'payload'
+import { APIError, type CollectionConfig, type Field } from 'payload'
 
 import { isOwner, isStaff } from '../access/roles'
 import { dayField, halfOptions } from '../fields/shared'
 import { bustCapacityOnChange } from '../hooks/bustCache'
 
+// Payload hook data (data / originalDoc / req) is untyped; this alias keeps the hooks readable.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>
 const idOf = (v: unknown) => (typeof v === 'string' ? v : (v as { id: string })?.id)
 
@@ -20,7 +22,7 @@ export const Capacity: CollectionConfig = {
     {
       type: 'row',
       fields: [
-        { ...dayField(), admin: { width: '40%' } } as any,
+        { ...dayField(), admin: { width: '40%' } } as Field,
         { name: 'half', type: 'select', required: true, options: halfOptions, admin: { width: '30%' } },
         { name: 'blocked', type: 'checkbox', defaultValue: false, admin: { width: '30%' } },
       ],
