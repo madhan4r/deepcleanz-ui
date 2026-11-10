@@ -13,3 +13,15 @@ export const siteInfo = {
   googleReviewLink: 'https://g.page/r/CXp6yoLd2ls0EBM/review',
   upiId: '6374171901@ptaxis',
 }
+
+const allDays: ('mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun')[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+
+/** Booking start times — same three slots every day (confirmed 10 Nov 2026). */
+export const bookingInfo = {
+  startTimes: [
+    { key: 'am-0830', label: '8:30 AM', half: 'am' as const, allowWholeDay: true, days: allDays },
+    { key: 'am-1030', label: '10:30 AM', half: 'am' as const, allowWholeDay: true, days: allDays },
+    { key: 'pm-1300', label: '1:00 PM', half: 'pm' as const, allowWholeDay: false, days: allDays },
+  ],
+  rescheduleHours: 3,
+}

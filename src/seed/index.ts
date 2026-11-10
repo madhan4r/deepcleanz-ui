@@ -13,7 +13,7 @@ import { getPayload } from 'payload'
 import config from '../payload.config'
 import { catalogue, officeChairService, seoTitleFor } from './catalogue'
 import { policies } from './policies'
-import { siteInfo } from './site-info'
+import { bookingInfo, siteInfo } from './site-info'
 
 type Condition = {
   key: string
@@ -233,15 +233,10 @@ async function run() {
     overrideAccess: true,
     data: {
       crewsPerDay: 3,
-      startTimes: [
-        { key: 'am-0830', label: '8:30 AM', half: 'am', allowWholeDay: true, days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'] },
-        { key: 'am-1030', label: '10:30 AM', half: 'am', allowWholeDay: true, days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'] },
-        { key: 'pm-1300', label: '1:00 PM', half: 'pm', allowWholeDay: false, days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'] },
-        { key: 'sun-0900', label: '9:00 AM', half: 'am', allowWholeDay: true, days: ['sun'] },
-      ],
+      startTimes: bookingInfo.startTimes,
       bookingWindowDays: 14,
       dispatchTimeoutMinutes: 45,
-      rescheduleHours: 3,
+      rescheduleHours: bookingInfo.rescheduleHours,
     },
   })
 
