@@ -12,6 +12,7 @@ import { getPayload } from 'payload'
 
 import config from '../payload.config'
 import { catalogue, officeChairService, seoTitleFor } from './catalogue'
+import { policies } from './policies'
 
 type Condition = {
   key: string
@@ -252,7 +253,7 @@ async function run() {
       ],
       bookingWindowDays: 14,
       dispatchTimeoutMinutes: 45,
-      rescheduleHours: 24,
+      rescheduleHours: 3,
     },
   })
 
@@ -397,85 +398,18 @@ async function run() {
     await payload.create({ collection: 'occasions', data: festival, overrideAccess: true })
   }
 
-  // ---- Policy pages as UNPUBLISHED drafts. Every [bracket] needs your decision before publishing.
+  // ---- Policy pages (confirmed 10 Nov 2026) — text lives in ./policies.ts; `npm run policies` updates existing ones.
   const editorConfig = await editorConfigFactory.default({ config: payload.config })
-  const md = (markdown: string) => convertMarkdownToLexical({ editorConfig, markdown })
-  const policyDrafts = [
-    {
-      title: 'Privacy policy',
-      slug: 'privacy-policy',
-      metaDescription: 'What DeepCleanz collects when you book, why, and how to ask for it to be deleted.',
-      body: md(`DeepCleanz ("we") runs deepcleanz.com. This page explains what we collect when you use the site or book a clean.
-
-## What we collect
-- **When you book:** your name, mobile/WhatsApp number, address, the date and time you picked, what you want cleaned and any notes (for example "pets at home").
-- **When you type your number but don't finish:** your number and what you were planning, so we can call you back.
-- **When you arrive from an ad or link:** a cookie called \`dc_attr\` that remembers the ad click id and campaign tags for 90 days.
-- **Analytics:** if enabled, Google Tag Manager, Google Analytics and Google Ads measure visits and bookings.
-
-## Why we use it
-- To confirm your booking, assign a cleaning partner and contact you by phone or WhatsApp.
-- To share your name, address and phone with the cleaning partner who accepts your job — only after they accept.
-- To see which ads lead to bookings.
-
-We do not sell your information.
-
-## How long we keep it
-[How long booking and lead records are kept, e.g. 2 years after your last booking.]
-
-## Your choices
-You can ask us to show, correct or delete your information by emailing [info@deepcleanz.com] or messaging us on WhatsApp. Grievance officer: [name, email].
-`),
-    },
-    {
-      title: 'Terms of service',
-      slug: 'terms',
-      metaDescription: 'The terms for booking a DeepCleanz deep clean.',
-      body: md(`## Who does the work
-DeepCleanz takes your booking and assigns it to a verified cleaning partner (ID and address checked). The partner brings their own machines and chemicals.
-
-## Price
-The price is fixed for what you pick in the planner. If your home is very different from what you booked, we tell you before work starts and you can say no. The price never changes after the work is done.
-
-## Payment
-You pay DeepCleanz after you inspect the work — by UPI or cash. Nothing is paid in advance.
-
-## Cancellation and damage
-See our cancellation policy and damage policy.
-
-[Anything else you want customers to agree to.]
-`),
-    },
-    {
-      title: 'Cancellation & reschedule policy',
-      slug: 'cancellation-policy',
-      metaDescription: 'How to reschedule or cancel a DeepCleanz booking.',
-      body: md(`## Rescheduling
-[Free up to X hours before the start time, subject to free slots.]
-
-## Cancelling
-[Any fee? e.g. free up to X hours before; ₹Y after that.]
-
-## If we have to cancel
-[What happens — e.g. we call you to move the date, no charge.]
-`),
-    },
-    {
-      title: 'Damage policy',
-      slug: 'damage-policy',
-      metaDescription: 'What happens if something is damaged during a DeepCleanz clean.',
-      body: md(`## Reporting
-[Tell us within X hours, with photos, by WhatsApp or call.]
-
-## How it is settled
-[Who pays — DeepCleanz or the partner — and up to what amount.]
-`),
-    },
-  ]
+  const policyDrafts = policies.map((p) => ({
+    title: p.title,
+    slug: p.slug,
+    metaDescription: p.metaDescription,
+    body: convertMarkdownToLexical({ editorConfig, markdown: p.markdown }),
+  }))
   for (const pg of policyDrafts) {
     const found = await payload.find({ collection: 'pages', where: { slug: { equals: pg.slug } }, limit: 1, overrideAccess: true })
     if (!found.docs[0]) {
-      await payload.create({ collection: 'pages', data: { ...pg, published: false }, overrideAccess: true })
+      await payload.create({ collection: 'pages', data: { ...pg, published: true }, overrideAccess: true })
     }
   }
 
