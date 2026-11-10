@@ -13,6 +13,7 @@ import { getPayload } from 'payload'
 import config from '../payload.config'
 import { catalogue, officeChairService, seoTitleFor } from './catalogue'
 import { policies } from './policies'
+import { siteInfo } from './site-info'
 
 type Condition = {
   key: string
@@ -223,21 +224,8 @@ async function run() {
   await payload.updateGlobal({
     slug: 'site-settings',
     overrideAccess: true,
-    data: {
-      businessName: 'DeepCleanz',
-      phone: '+91 93636 09470',
-      whatsapp: '919363609470',
-      email: 'info@deepcleanz.com',
-      address: '41, South Lock St, Kotturpuram, Chennai – 600 085',
-      hours: [
-        { days: 'Mon–Sat', open: '8:00 AM', close: '7:00 PM' },
-        { days: 'Sun', open: '9:00 AM', close: '4:00 PM' },
-      ],
-      googleRating: 4.6,
-      googleReviewCount: 77,
-      homesCleanedDisplay: '200+',
-      mapsLink: 'https://maps.app.goo.gl/8eaRtPbwnZ74kt4L8',
-    },
+    // Business facts live in ./site-info.ts so re-running the seed never reverts them.
+    data: siteInfo,
   })
 
   await payload.updateGlobal({

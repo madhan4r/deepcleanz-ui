@@ -16,6 +16,7 @@
     "seed": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/index.ts",
     "prices": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/prices.ts",
     "policies": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/publish-policies.ts",
+    "settings": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/apply-settings.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
