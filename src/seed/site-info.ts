@@ -12,7 +12,8 @@ export const siteInfo = {
   mapsLink: 'https://maps.app.goo.gl/8eaRtPbwnZ74kt4L8',
   googleReviewLink: 'https://g.page/r/CXp6yoLd2ls0EBM/review',
   upiId: '6374171901@ptaxis',
-  gstNote: 'Prices exclude GST.',
+  // Not GST-registered, so no GST is charged.
+  gstNote: 'No GST: the price you see is the price you pay.',
 }
 
 const allDays: ('mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun')[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
