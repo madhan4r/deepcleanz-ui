@@ -161,6 +161,25 @@ export const Addons: CollectionConfig = {
       ],
     },
     {
+      name: 'optionPrices',
+      label: 'Price per option (optional)',
+      type: 'array',
+      admin: {
+        description:
+          'Use when the price depends on the option, e.g. machine scrubbing: 1bhk ₹500, 2bhk ₹700. When filled, the add-on is offered only for these options and the price above is ignored.',
+        initCollapsed: true,
+      },
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            { name: 'conditionKey', label: 'Option key', type: 'text', required: true, admin: { width: '60%', description: 'e.g. 2bhk' } },
+            { name: 'price', type: 'number', required: true, min: 0, admin: { width: '40%', description: '₹' } },
+          ],
+        },
+      ],
+    },
+    {
       name: 'makesWholeDay',
       type: 'checkbox',
       defaultValue: false,

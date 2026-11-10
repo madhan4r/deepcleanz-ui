@@ -8,6 +8,7 @@ import { getPayload } from 'payload'
 
 import config from '../payload.config'
 import { catalogue, officeChairService, seoTitleFor } from './catalogue'
+import { applyCatalogueAddons } from './catalogue-addons'
 
 // `payload run` does not pass CLI flags through, so the switch is an env var.
 const apply = process.env.APPLY === '1'
@@ -65,6 +66,8 @@ async function run() {
       console.log('   ! service not found, skipped')
     }
   }
+  console.log('')
+  await applyCatalogueAddons(payload, apply)
   console.log(apply ? '\nApplied.' : '\nDry run only. Run with APPLY=1 to save.')
   process.exit(0)
 }

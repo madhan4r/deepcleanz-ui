@@ -89,12 +89,19 @@ export function fromPrice(service: Pick<Service, 'conditions'>): number | null {
   return Math.min(...prices)
 }
 
+/** Per-option prices of an add-on as { optionKey: price }, or undefined when it has one flat price. */
+export function addonOptionPrices(a: Pick<Addon, 'optionPrices'>): Record<string, number> | undefined {
+  const rows = (a.optionPrices ?? []).filter((p) => p.price > 0)
+  return rows.length ? Object.fromEntries(rows.map((p) => [p.conditionKey, p.price])) : undefined
+}
+
 /** Active add-ons with a real price, ready for a planner. */
 export function plannerAddons(service: Pick<Service, 'addons'>) {
   return (service.addons ?? [])
-    .filter((a): a is Addon => typeof a === 'object' && a !== null)
-    .filter((a) => a.active && a.price > 0)
-    .map((a) => ({ id: a.id, name: a.name, price: a.price, unit: a.unit ?? '' }))
+    .filter((a): a is Addon => typeof a === 'object' && a !== null && Boolean(a.active))
+    .map((a) => ({ id: a.id, name: a.name, price: a.price, unit: a.unit ?? '', optionPrices: addonOptionPrices(a) }))
+    // Flat-price add-ons need a price; per-option ones are priced per option.
+    .filter((a) => (a.optionPrices ? true : a.price > 0))
 }
 
 export const mediaUrl = (m: unknown, size?: 'card' | 'hero'): string | null => {

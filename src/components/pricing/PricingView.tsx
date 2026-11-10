@@ -87,7 +87,17 @@ export function PricingView({ settings, services, faqs }: { settings: SiteSettin
                 </div>
                 {addons.length ? (
                   <p className="note-box">
-                    <strong>Add-ons:</strong> {addons.map((a) => `${a.name} ${inr(a.price)}${a.unit ? ` ${a.unit}` : ''}`).join(' · ')}
+                    <strong>Add-ons:</strong>{' '}
+                    {addons
+                      .map((a) =>
+                        a.optionPrices
+                          ? `${a.name} ${(s.conditions ?? [])
+                              .filter((c) => a.optionPrices?.[c.key])
+                              .map((c) => `+${inr(a.optionPrices![c.key])} (${c.label})`)
+                              .join(', ')}`
+                          : `${a.name} ${inr(a.price)}${a.unit ? ` ${a.unit}` : ''}`,
+                      )
+                      .join(' · ')}
                   </p>
                 ) : null}
               </section>

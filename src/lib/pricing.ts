@@ -19,6 +19,19 @@ export type PricedItem = {
 
 const idOf = (v: string | { id: string }) => (typeof v === 'string' ? v : v.id)
 
+type AddonPricing = { price: number; optionPrices?: { conditionKey: string; price: number }[] | null }
+
+/**
+ * An add-on's price for one option. With per-option prices (e.g. machine scrubbing +₹500 on 1 BHK,
+ * +₹700 on 2 BHK) the add-on exists only for the listed options; otherwise its flat price applies.
+ * Returns null when the add-on isn't offered for that option.
+ */
+export function addonPriceFor(addon: AddonPricing, conditionKey: string): number | null {
+  const per = addon.optionPrices ?? []
+  if (per.length) return per.find((p) => p.conditionKey === conditionKey)?.price ?? null
+  return addon.price
+}
+
 /**
  * Prices are always computed on the server from the catalogue.
  * The number shown in the browser is display-only.
@@ -49,7 +62,9 @@ export async function priceItems(
     for (const addonId of addonIds) {
       const addon = await payload.findByID({ collection: 'addons', id: addonId, depth: 0, req, overrideAccess: true })
       if (!addon.active) throw new Error(`Add-on "${addon.name}" is not available`)
-      addonTotal += addon.price
+      const addonPrice = addonPriceFor(addon, condition.key)
+      if (addonPrice === null) throw new Error(`Add-on "${addon.name}" is not available for ${condition.label}`)
+      addonTotal += addonPrice
       if (addon.makesWholeDay) addonMakesWholeDay = true
     }
 

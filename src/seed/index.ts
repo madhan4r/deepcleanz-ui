@@ -12,6 +12,7 @@ import { getPayload } from 'payload'
 
 import config from '../payload.config'
 import { catalogue, officeChairService, seoTitleFor } from './catalogue'
+import { applyCatalogueAddons } from './catalogue-addons'
 import { policies } from './policies'
 import { bookingInfo, siteInfo } from './site-info'
 
@@ -244,6 +245,7 @@ async function run() {
     const result = await upsertService(payload, s)
     payload.logger.info(`${result}: ${s.name}`)
   }
+  await applyCatalogueAddons(payload, true, (line) => payload.logger.info(line))
 
   // Full-home extras for the home-page planner. Created INACTIVE with ₹0 —
   // the planner only shows active add-ons with a real price.

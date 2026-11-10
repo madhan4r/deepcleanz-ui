@@ -2,7 +2,8 @@
  * Confirmed prices (Madhan, 10 Nov 2026). Single source for `npm run seed` and `npm run prices`.
  * Per-seat / per-sq-ft rates are turned into fixed options because the planner books fixed prices:
  *   sofa ₹250/seat (fabric or leather) · office chair ₹150/chair · carpet ₹6/sq ft (₹399 minimum)
- *   empty villa ₹5/sq ft mop, ₹8/sq ft machine · machine scrubbing on full home +₹500 / +₹700 / +₹1,000
+ *   empty villa ₹5/sq ft mop (+₹3/sq ft machine) · machine scrubbing is an add-on priced per option:
+ *   +₹500 / +₹700 / +₹1,000 on 1/2/3 BHK, +₹4,500 / +₹7,500 on the two villa sizes
  * A service with any ₹0 option stays unpublished.
  */
 export type CatalogueOption = {
@@ -16,15 +17,10 @@ export type CatalogueOption = {
 export const catalogue: Record<string, CatalogueOption[]> = {
   'home-deep-cleaning-chennai': [
     { key: '1bhk', label: '1 BHK', price: 2799, units: 'whole' },
-    { key: '1bhk-machine', label: '1 BHK + machine scrubbing', price: 3299, units: 'whole', description: 'Floors scrubbed with a floor machine instead of by hand.' },
     { key: '2bhk', label: '2 BHK', price: 4299, units: 'whole' },
-    { key: '2bhk-machine', label: '2 BHK + machine scrubbing', price: 4999, units: 'whole', description: 'Floors scrubbed with a floor machine instead of by hand.' },
     { key: '3bhk', label: '3 BHK', price: 4799, units: 'whole' },
-    { key: '3bhk-machine', label: '3 BHK + machine scrubbing', price: 5799, units: 'whole', description: 'Floors scrubbed with a floor machine instead of by hand.' },
-    { key: 'villa-1500-mop', label: 'Empty villa, up to 1,500 sq ft · mop', price: 7500, units: 'whole', description: '₹5 per sq ft. Empty house only. Bigger villa? WhatsApp us for a quote.' },
-    { key: 'villa-1500-machine', label: 'Empty villa, up to 1,500 sq ft · machine', price: 12000, units: 'whole', description: '₹8 per sq ft, floors scrubbed with a machine. Empty house only.' },
-    { key: 'villa-2500-mop', label: 'Empty villa, 1,500–2,500 sq ft · mop', price: 12500, units: 'whole', description: '₹5 per sq ft. Empty house only. Bigger villa? WhatsApp us for a quote.' },
-    { key: 'villa-2500-machine', label: 'Empty villa, 1,500–2,500 sq ft · machine', price: 20000, units: 'whole', description: '₹8 per sq ft, floors scrubbed with a machine. Empty house only.' },
+    { key: 'villa-1500', label: 'Empty villa, up to 1,500 sq ft', price: 7500, units: 'whole', description: '₹5 per sq ft, mopped. Empty house only. Add machine scrubbing for ₹3 per sq ft more.' },
+    { key: 'villa-2500', label: 'Empty villa, 1,500–2,500 sq ft', price: 12500, units: 'whole', description: '₹5 per sq ft, mopped. Empty house only. Bigger villa? WhatsApp us for a quote.' },
   ],
   'kitchen-cleaning-chennai': [
     { key: 'light', label: 'Empty / light', price: 1499, units: 'half', description: 'Empty kitchen, or cooked in daily and cleaned weekly.' },
@@ -63,6 +59,26 @@ export const catalogue: Record<string, CatalogueOption[]> = {
     { key: '6-10', label: '6–10 chairs', price: 1500, units: 'half', description: '₹150 per chair. More than 10? WhatsApp us for a quote.' },
   ],
   // Move-in / move-out: prices not confirmed yet — stays as seeded (unpublished).
+}
+
+export type CatalogueAddon = {
+  name: string
+  /** Shown as "from" when optionPrices is set. */
+  price: number
+  unit?: string
+  /** Option key → price. The add-on is offered only for these options. */
+  optionPrices?: Record<string, number>
+}
+
+/** Add-ons managed from code, per service (others are managed in admin). */
+export const catalogueAddons: Record<string, CatalogueAddon[]> = {
+  'home-deep-cleaning-chennai': [
+    {
+      name: 'Machine scrubbing',
+      price: 500,
+      optionPrices: { '1bhk': 500, '2bhk': 700, '3bhk': 1000, 'villa-1500': 4500, 'villa-2500': 7500 },
+    },
+  ],
 }
 
 /** New service added with the 10 Nov prices. */

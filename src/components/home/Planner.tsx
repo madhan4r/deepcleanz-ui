@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 
 import { track } from '@/components/site/track'
 import { inr } from '@/lib/format'
@@ -14,7 +14,7 @@ export type PlannerOption = {
   description?: string | null
   photoUrl?: string | null
 }
-export type PlannerAddon = { id: string; name: string; price: number; unit: string }
+export type PlannerAddon = { id: string; name: string; price: number; unit: string; optionPrices?: Record<string, number> }
 
 type Props = {
   serviceSlug: string
@@ -47,8 +47,11 @@ export function Planner({
   const started = useRef(false)
 
   const option = options.find((o) => o.key === key) ?? initial
-  const chosen = addons.filter((a) => picked.includes(a.id))
-  const total = useMemo(() => (option?.price ?? 0) + chosen.reduce((s, a) => s + a.price, 0), [option, chosen])
+  // An add-on with per-option prices only exists for those options (e.g. machine scrubbing by BHK).
+  const priceOf = (a: PlannerAddon) => (a.optionPrices ? (a.optionPrices[option?.key ?? ''] ?? 0) : a.price)
+  const visible = addons.filter((a) => priceOf(a) > 0)
+  const chosen = visible.filter((a) => picked.includes(a.id))
+  const total = (option?.price ?? 0) + chosen.reduce((s, a) => s + priceOf(a), 0)
 
   if (!option) return null
 
@@ -68,13 +71,13 @@ export function Planner({
     firstTouch()
     setPicked((cur) => {
       const on = cur.includes(a.id)
-      if (!on) track('addon_added', { service: serviceSlug, addon: a.name, value: a.price })
+      if (!on) track('addon_added', { service: serviceSlug, addon: a.name, value: priceOf(a) })
       return on ? cur.filter((x) => x !== a.id) : [...cur, a.id]
     })
   }
 
   const params = new URLSearchParams({ service: serviceSlug, option: option.key })
-  if (picked.length) params.set('addons', picked.join(','))
+  if (chosen.length) params.set('addons', chosen.map((a) => a.id).join(','))
   const meta = [
     option.crewSize ? `Crew of ${option.crewSize}` : null,
     option.durationHrs ? `about ${option.durationHrs} hours` : null,
@@ -112,15 +115,15 @@ export function Planner({
         )}
       </fieldset>
 
-      {addons.length > 0 && (
+      {visible.length > 0 && (
         <fieldset>
           <legend>2 · Anything extra?</legend>
           <div className="pills">
-            {addons.map((a) => {
+            {visible.map((a) => {
               const on = picked.includes(a.id)
               return (
                 <button key={a.id} type="button" className="pill" aria-pressed={on} onClick={() => toggle(a)}>
-                  {on ? '✓' : '+'} {a.name} <span className="visually-hidden">{inr(a.price)}</span>
+                  {on ? '✓' : '+'} {a.name} <span className="visually-hidden">{inr(priceOf(a))}</span>
                 </button>
               )
             })}

@@ -2,7 +2,7 @@ import type { Payload } from 'payload'
 
 import type { BookingSetting, Service } from '@/payload-types'
 
-import { type Half, priceItems } from './pricing'
+import { addonPriceFor, type Half, priceItems } from './pricing'
 
 export const TZ = 'Asia/Kolkata'
 const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
@@ -72,7 +72,14 @@ export async function loadSelection(
 
   const offered = new Set((service.addons ?? []).map((a) => (typeof a === 'string' ? a : a.id)))
   const requested = Array.isArray(input.addons) ? input.addons.filter((a): a is string => typeof a === 'string') : []
-  const addonIds = Array.from(new Set(requested)).filter((id) => offered.has(id))
+  const candidates = Array.from(new Set(requested)).filter((id) => offered.has(id))
+  // Keep only add-ons that are live and priced for this option (a stale link may carry others).
+  const addonIds: string[] = []
+  for (const id of candidates) {
+    const addon = await payload.findByID({ collection: 'addons', id, depth: 0, overrideAccess: true }).catch(() => null)
+    const price = addon?.active ? addonPriceFor(addon, condition.key) : null
+    if (price !== null && price > 0) addonIds.push(id)
+  }
 
   const priced = await priceItems(payload, [{ service: service.id, conditionKey: condition.key, addons: addonIds }])
   return {

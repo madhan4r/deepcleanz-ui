@@ -457,6 +457,22 @@ export interface Addon {
    */
   unit?: string | null;
   /**
+   * Use when the price depends on the option, e.g. machine scrubbing: 1bhk ₹500, 2bhk ₹700. When filled, the add-on is offered only for these options and the price above is ignored.
+   */
+  optionPrices?:
+    | {
+        /**
+         * e.g. 2bhk
+         */
+        conditionKey: string;
+        /**
+         * ₹
+         */
+        price: number;
+        id?: string | null;
+      }[]
+    | null;
+  /**
    * Tick if adding this turns a half-day job into a whole-day job.
    */
   makesWholeDay?: boolean | null;
@@ -1158,6 +1174,13 @@ export interface AddonsSelect<T extends boolean = true> {
   name?: T;
   price?: T;
   unit?: T;
+  optionPrices?:
+    | T
+    | {
+        conditionKey?: T;
+        price?: T;
+        id?: T;
+      };
   makesWholeDay?: T;
   active?: T;
   updatedAt?: T;

@@ -4,7 +4,7 @@ import { ChatFaq } from '@/components/home/Sections'
 import { breadcrumbSchema, faqSchema, JsonLd } from '@/components/site/JsonLd'
 import { ActionBar } from '@/components/site/SiteChrome'
 import { inr, whatsappHref } from '@/lib/format'
-import { fromPrice, istDate, plannerAddons, siteUrl } from '@/lib/site'
+import { addonOptionPrices, fromPrice, istDate, plannerAddons, siteUrl } from '@/lib/site'
 import type { Addon, Faq, Occasion, Service, SiteSetting } from '@/payload-types'
 
 type Season = NonNullable<Occasion['seasons']>[number]
@@ -48,7 +48,7 @@ export function OccasionView({
   const extras = (season?.extras ?? [])
     .filter((a): a is Addon => typeof a === 'object' && a !== null)
     .filter((a) => offered.has(a.id))
-    .map((a) => ({ id: a.id, name: a.name, price: a.price, unit: a.unit ?? '' }))
+    .map((a) => ({ id: a.id, name: a.name, price: a.price, unit: a.unit ?? '', optionPrices: addonOptionPrices(a) }))
   const options = (fullHome?.conditions ?? []).map((c) => ({ key: c.key, label: c.label, price: c.price, durationHrs: c.durationHrs, crewSize: c.crewSize }))
   const from = fullHome ? fromPrice(fullHome) : null
   const crumbs = [

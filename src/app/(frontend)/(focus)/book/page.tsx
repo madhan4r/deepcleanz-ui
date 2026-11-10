@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { BookingFlow } from '@/components/booking/BookingFlow'
 import { loadSelection } from '@/lib/booking'
 import { inr, whatsappHref } from '@/lib/format'
+import { addonPriceFor } from '@/lib/pricing'
 import { getPayloadClient, getSettings } from '@/lib/site'
 
 export const dynamic = 'force-dynamic'
@@ -59,7 +60,7 @@ export default async function BookPage({ searchParams }: Props) {
         option: selection.conditionKey,
         addons: selection.addonIds,
         itemLabel: `${selection.service.name} · ${selection.conditionLabel}`,
-        addonLabels: addonDocs.map((a) => `${a.name} (${inr(a.price)})`),
+        addonLabels: addonDocs.map((a) => `${a.name} (${inr(addonPriceFor(a, selection.conditionKey) ?? a.price)})`),
         total: selection.total,
         meta,
       }}
